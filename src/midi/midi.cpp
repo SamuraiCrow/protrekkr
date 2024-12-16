@@ -37,7 +37,7 @@
 #include "../include/ptk.h"
 
 #include "include/midi.h"
-#include "include/RtMidi.h"
+#include "include/rtmidi.h"
 #include "include/midi_dispatch.h"
 
 // ------------------------------------------------------
@@ -171,8 +171,8 @@ void Midi_CallBackIn(double deltatime,
             {
                 Current_Instrument = Instrument_Number;
                 Clear_Input();
-                Actualize_Patterned();
-                RefreshSample();
+                Actualize_Pattern_Ed();
+                Refresh_Sample();
                 Renew_Sample_Ed();
                 Actualize_Synth_Ed(UPDATE_SYNTH_ED_ALL);
             }

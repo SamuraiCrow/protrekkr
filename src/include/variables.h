@@ -113,10 +113,10 @@
 
 #define GUI_CMD_SELECT_LARGE_PATTERNS 74
 
-#define GUI_CMD_SWITCH_TRACK_LARGE_STATE 75
-#define GUI_CMD_SWITCH_TRACK_SMALL_STATE 76
+#define GUI_CMD_SWITCH_TRACK_EXPAND_STATE 75
+#define GUI_CMD_SWITCH_TRACK_REDUCE_STATE 76
 
-#define GUI_CMD_EXPORT_WAV 77
+#define GUI_CMD_EXPORT_WHOLE_WAV 77
 
 #define GUI_CMD_SET_FILES_LIST_PLAY_WAV 78
 
@@ -127,6 +127,9 @@
 
 #define GUI_CMD_REDUCE_TRACK_EFFECTS 82
 #define GUI_CMD_EXPAND_TRACK_EFFECTS 83
+
+#define GUI_CMD_EXPORT_SEL_WAV 84
+#define GUI_CMD_EXPORT_LOOP_WAV 85
 
 #define GUI_CMD_FILELIST_SCROLL 100
 #define GUI_CMD_UPDATE_LOOP_EDITOR_ED 101
@@ -312,17 +315,18 @@
 #define LIVE_PARAM_303_1_VOLUME 23
 #define LIVE_PARAM_303_2_VOLUME 24
 
-#define SCOPE_ZONE_SCOPE 0
-#define SCOPE_ZONE_MOD_DIR 1
-#define SCOPE_ZONE_INSTR_DIR 2
-#define SCOPE_ZONE_PRESET_DIR 3
-#define SCOPE_ZONE_INSTR_LIST 4
-#define SCOPE_ZONE_SYNTH_LIST 5
-#define SCOPE_ZONE_REVERB_DIR 6
-#define SCOPE_ZONE_PATTERN_DIR 7
-#define SCOPE_ZONE_SAMPLE_DIR 8
-#define SCOPE_ZONE_MIDICFG_DIR 9
-#define SCOPE_LAST_DIR 10
+#define SCOPE_ZONE_VUMETERS 0
+#define SCOPE_ZONE_SCOPE 1
+#define SCOPE_ZONE_MOD_DIR 2
+#define SCOPE_ZONE_INSTR_DIR 3
+#define SCOPE_ZONE_PRESET_DIR 4
+#define SCOPE_ZONE_INSTR_LIST 5
+#define SCOPE_ZONE_SYNTH_LIST 6
+#define SCOPE_ZONE_REVERB_DIR 7
+#define SCOPE_ZONE_PATTERN_DIR 8
+#define SCOPE_ZONE_SAMPLE_DIR 9
+#define SCOPE_ZONE_MIDICFG_DIR 10
+#define SCOPE_LAST_DIR 11
 
 #define MIN_VUMETER 22
 #define MAX_VUMETER 155
@@ -388,13 +392,13 @@ extern int TRACKS_WIDTH;
 extern int CONSOLE_HEIGHT;
 extern int Scopish;
 
-extern int Pos_Tbl_Synth_OSC1;
-extern int Pos_Tbl_Synth_OSC2;
+extern int Pos_Tbl_Synth_OSC_1;
+extern int Pos_Tbl_Synth_OSC_2;
 extern int Pos_Tbl_Synth_VCF;
-extern int Pos_Tbl_Synth_LFO1;
-extern int Pos_Tbl_Synth_LFO2;
-extern int Pos_Tbl_Synth_ENV1;
-extern int Pos_Tbl_Synth_ENV2;
+extern int Pos_Tbl_Synth_LFO_1;
+extern int Pos_Tbl_Synth_LFO_2;
+extern int Pos_Tbl_Synth_ENV_1;
+extern int Pos_Tbl_Synth_ENV_2;
 
 extern char draw_sampled_wave;
 extern char draw_sampled_wave2;
@@ -410,6 +414,7 @@ extern float left_float_render;
 extern float right_float_render;
 
 extern SDL_Surface *PFONT;
+extern SDL_Surface *PFONT_DOUBLE;
 extern SDL_Surface *FONT;
 extern SDL_Surface *FONT_LOW;
 
@@ -467,6 +472,8 @@ extern char sas;
 
 extern float *Scope_Dats[MAX_TRACKS];
 extern float *Scope_Dats_LeftRight[2];
+extern float *VuMeters_Dats_L[MAX_TRACKS];
+extern float *VuMeters_Dats_R[MAX_TRACKS];
 
 extern SDL_Surface *SKIN303;
 extern SDL_Surface *LOGOPIC;
@@ -491,22 +498,20 @@ extern char Channels_Effects[MAX_TRACKS];
 
 // ------------------------------------------------------
 // Functions
-void ResetFilters(int tr);
-void WavRenderizer();
-void Newmod(void);
-void GetBackMouse(void);
+void Reset_Filters(int tr);
+void Wav_Renderizer();
+void New_Mod(void);
 void SeqFill(int st, int en, char n);
-void PutBackMouse(void);
 void Read_SMPT(void);
 void Initreverb(void);
-void init_sample_bank(void);
+void Init_Sample_Bank(void);
 int Get_Number_Of_Splits(int n_index);
 void Clear_Instrument_Dat(int n_index, int split, int lenfir);
 void Allocate_Wave(int n_index, int split, long lenfir,
                    int samplechans, int clear,
                    short *Waveform1, short *Waveform2);
-void LoadFile(int Freeindex, const char *str);
-void RefreshSample(void);
+void Load_File(int Freeindex, const char *str);
+void Refresh_Sample(void);
 void value_box(int x, int y, int val, int flags);
 void value_box3(int x, int y, char val, int flags);
 void value_box4(int x, int y, char val);
@@ -514,9 +519,9 @@ void Actualize_Track_Ed(char gode);
 void Actualize_Songname(int *newletter, char *nam);
 void Get_Player_Values(void);
 void Check_Loops(void);
-void Skin_Copy(int xd, int yd, int xs, int ys, int w, int h);
+void Copy_303_Skin(int xd, int yd, int xs, int ys, int w, int h);
 void Go303(void);
-void knob(int x, int y, unsigned char number);
+void Copy_303_Knob(int x, int y, unsigned char number);
 void ShowInfo(void);
 void guiDial2(const char *str);
 
@@ -526,14 +531,14 @@ void out_nibble(int x, int y, int color, int number);
 void Song_Play(void);
 void Song_Stop(void);
 void Free_Samples(void);
-void draw_pated(int track, int line, int petrack, int row);
-void Actupated(int modac);
+void Draw_Pattern(int track, int line, int petrack, int row);
+void Update_Pattern(int modac);
 
-void KillInst(int inst_nbr, int all_splits);
+void Kill_Instrument(int inst_nbr, int all_splits);
 void Stop_Current_Instrument(void);
 void draw_lfoed(void);
 void draw_tracked(void);
-void DeleteInstrument(void);
+void Delete_Instrument(void);
 void Sp_Player(void);             
 void Pre_Song_Init(void);
 void Reverb_work(void);
@@ -546,16 +551,15 @@ float Filter(int stereo, float x, char i);
 float Cutoff(int v);
 float Reonance(float v);
 float Bandwidth(int v);
-float ApplyLfo(float cy, char trcy);
-int GetFreeWave(void);
-char zcheckMouse_nobutton(int x, int y, int xs, int ys);
-char zcheckMouse(int x, int y, int xs, int ys);
+float Apply_Lfo(float cy, char trcy);
+int Get_Free_Wave(void);
+char Check_Mouse_No_Button(int x, int y, int xs, int ys);
+char Check_Mouse(int x, int y, int xs, int ys);
 
-void FadeToBlack(void);
-void IniCsParNames(void);
+void Init_Synth_Params_Names(void);
 void UpSynth(int peac,int number);
-void ComputeStereo(int channel);
-void FixStereo(int channel);
+void Compute_Stereo(int channel);
+void Fix_Stereo(int channel);
 void Keyboard_Handler(void);
 void Mouse_Handler(void);
 int Get_Track_Over_Mouse(int Mouse, int *Was_Scrolling, int Left);
@@ -595,10 +599,14 @@ void Display_Master_Comp(void);
 void Display_Master_Volume(void);
 void Display_Shuffle(void);
 void Actualize_Input(void);
+void Draw_VuMeters(void);
 void Draw_Scope(void);
-int Init_Scopes_Buffers(void);
+int Init_Scopes_VuMeters_Buffers(void);
 
 void Remove_Title(void);
 void Switch_Cmd_Playing(int Enable);
+
+void Lock_Audio_Thread(void);
+void Unlock_Audio_Thread(void);
 
 #endif

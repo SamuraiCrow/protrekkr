@@ -47,6 +47,7 @@ void Load_Inst(char *FileName)
     int Glob_Vol = FALSE;
     int Combine = FALSE;
     int Long_Midi_Prg = FALSE;
+    int Var_Disto = FALSE;
 
     Status_Box("Attempting To Load An Instrument File...");
     FILE *in;
@@ -60,6 +61,8 @@ void Load_Inst(char *FileName)
 
         switch(extension[7])
         {
+            case 'B':
+                Var_Disto = TRUE;
             case 'A':
                 Long_Midi_Prg = TRUE;
             case '9':
@@ -84,7 +87,7 @@ void Load_Inst(char *FileName)
                 old_bug = TRUE;
                 break;
         }
-        KillInst(Current_Instrument, TRUE);
+        Kill_Instrument(Current_Instrument, TRUE);
         Status_Box("Loading Instrument -> Header..."); 
         Read_Data(&nameins[Current_Instrument], sizeof(char), 20, in);
 
@@ -109,21 +112,21 @@ void Load_Inst(char *FileName)
 
         PARASynth[swrite].disto = 0;
 
-        PARASynth[swrite].lfo1_attack = 0;
-        PARASynth[swrite].lfo1_decay = 0;
-        PARASynth[swrite].lfo1_sustain = 128;
-        PARASynth[swrite].lfo1_release = 0x10000;
+        PARASynth[swrite].lfo_1_attack = 0;
+        PARASynth[swrite].lfo_1_decay = 0;
+        PARASynth[swrite].lfo_1_sustain = 128;
+        PARASynth[swrite].lfo_1_release = 0x10000;
 
-        PARASynth[swrite].lfo2_attack = 0;
-        PARASynth[swrite].lfo2_decay = 0;
-        PARASynth[swrite].lfo2_sustain = 128;
+        PARASynth[swrite].lfo_2_attack = 0;
+        PARASynth[swrite].lfo_2_decay = 0;
+        PARASynth[swrite].lfo_2_sustain = 128;
         PARASynth[swrite].osc_combine = COMBINE_ADD;
 
-        PARASynth[swrite].lfo2_release = 0x10000;
+        PARASynth[swrite].lfo_2_release = 0x10000;
 
         Read_Synth_Params(Read_Data, Read_Data_Swap, in, swrite,
                           !old_bug, new_adsr, tight,
-                          Env_Modulation, New_Env, FALSE, Combine);
+                          Env_Modulation, New_Env, FALSE, Combine, Var_Disto);
         // Gsm by default
         if(Pack_Scheme)
         {
@@ -164,7 +167,7 @@ void Load_Inst(char *FileName)
                 else Read_Data(&SampleName[swrite][slwrite], sizeof(char), 64, in);
                 
                 Read_Data(&Basenote[swrite][slwrite], sizeof(char), 1, in);
-                
+
                 Read_Data_Swap(&LoopStart[swrite][slwrite], sizeof(int), 1, in);
                 Read_Data_Swap(&LoopEnd[swrite][slwrite], sizeof(int), 1, in);
                 Read_Data(&LoopType[swrite][slwrite], sizeof(char), 1, in);
@@ -193,9 +196,10 @@ void Load_Inst(char *FileName)
                     *RawSamples[swrite][1][slwrite] = 0;
                 }
             } // Exist Sample
+            Recalculate_Sample_Size(swrite, slwrite, TRUE, 0, 0, FALSE, FALSE);
         }
         fclose(in);
-        Actualize_Patterned();
+        Actualize_Pattern_Ed();
         Actualize_Instrument_Ed(2, 0);
         Actualize_Synth_Ed(UPDATE_SYNTH_ED_ALL);
         Status_Box("Instrument Loaded Successfully.");
@@ -204,7 +208,6 @@ void Load_Inst(char *FileName)
     {
         Status_Box("Instrument Loading Failed. (Possible Cause: File Not Found)");
     }
-    
     Clear_Input();
 }
 
@@ -218,7 +221,7 @@ void Save_Inst(void)
     char synth_prg;
     int synth_save;
 
-    sprintf(extension, "PROTINSA");
+    sprintf(extension, "PROTINSB");
 
     if(!strlen(nameins[Current_Instrument])) sprintf(nameins[Current_Instrument], "Untitled");
     sprintf (Temph, "Saving '%s.pti' Instrument In Instruments Directory...", nameins[Current_Instrument]);
@@ -297,7 +300,7 @@ void Save_Inst(void)
         Read_SMPT();
         last_index = -1;
         Actualize_Files_List(0);
-        Actualize_Patterned();
+        Actualize_Pattern_Ed();
         Status_Box("Instrument Saved Successfully."); 
     }
     else

@@ -84,10 +84,10 @@ extern int Patterns_Lines_Offset;
 
 // ------------------------------------------------------
 // Functions
-void draw_pated(int track, int line, int petrack, int row);
-void Actupated(int modac);
-void draw_pated_highlight(int track, int line, int petrack, int row, int ypos);
-void Actualize_Patterned(void);
+void Draw_Pattern(int track, int line, int petrack, int row);
+void Draw_Patt_Line_Highlighted(int track, int line, int petrack, int row, int ypos);
+void Update_Pattern(int modac);
+void Actualize_Pattern_Ed(void);
 void Bound_Patt_Pos(void);
 void Reset_Pattern_Scrolling_Horiz(void);
 void Mouse_Wheel_Pattern_Ed(int roll_amount, int allow);
@@ -117,7 +117,7 @@ int Get_Last_Track_Column(int track);
 int Get_Visible_Complete_Tracks(int *pixels);
 int Get_Pattern_Offset(int track, int row, int pattern);
 void Reset_Patterns_Zoom(void);
-void Toggle_Track_Zoom(int track, int large);
+void Change_Track_Zoom(int track, int expand);
 void Clear_Track_Zoom(int track);
 TRACK_TYPE Get_Track_Zoom(int track);
 void Set_Track_Zoom(int track, TRACK_TYPE type);

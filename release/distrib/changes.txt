@@ -2,12 +2,47 @@
 ProTrekkr releases history
 ===============================================================================
 
-v2.7.0
+v2.7.6
+
+- Fixed keyboard handling on Mac OS.
+
+v2.7.5
+
+- Sample editor tries to keep loop information intact whenever possible.
+- Synth distortion can now have positive or negative values.
+- Synth ENV 1 & 2 can be directed to drive synth distortion.
+- Synth LVO 1 & 2 can be directed to drive synth distortion as well.
+- Removed broken instruments and presets from distribution.
+- Fixed a couple of bugs here and there.
+- Added replay routine support for AROS.
+- Added global stereo VU meters view for each channel.
+
+v2.7.3
+
+- Samples data & properties weren't properly recalculated after
+  samples editor operations often leading to a crash
+  when a song was being replayed at the same time.
+- Implemented a more straightforward individual tracks zooming mechanism.
+
+v2.7.2
+
+- Fixed a long time running bug that would make the tracker to crash when
+  loading or messing with the instruments.
+- Fixed a small visual bug in patterns display.
+- Patterns font size can now also be doubled vertically.
+
+v2.7.1
 
 - Copy buffers icons weren't updated properly when selected with keyboard.
 - Added OpenGL support (especially for slower systems).
 - Fixed a nasty regression bug in log & pow functions.
 - Various bugs fixed here and there.
+- Added a function to only save the selected part of a sample as a .wav.
+- Added a function to only save the loop part of a sample as a .wav.
+- Sample selection isn't maximized when zooming out anymore.
+- Added a sample drawing mode.
+- Fixed HAIKU OS config file handling (SamuraiCrow).
+- Fixed a bug in sample export functions.
 
 v2.6.7
 
@@ -470,8 +505,8 @@ v1.98c:
 
 v1.98b:
 
-- Fixed a bug in the synth: ENV1 and ENV2 now really modulate the volume 
-  of OSC1 or OSC2.
+- Fixed a bug in the synth: ENV_1 and ENV_2 now really modulate the volume 
+  of OSC_1 or OSC_2.
 
   **Due to this older modules don't sound exactly the same**
 

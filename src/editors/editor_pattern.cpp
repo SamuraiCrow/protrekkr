@@ -50,6 +50,9 @@ char is_recording = 0;
 char is_recording_2 = 0;
 char is_record_key = 0;
 
+int chars_height = 8;
+int pattern_double = FALSE;
+
 // Min 1 Max 16
 int patt_highlight = 4;
 int Continuous_Scroll;
@@ -268,10 +271,11 @@ int Get_Nibble_Color(int In_Prev_Next, int row, int column, int multi, int Shado
 int Get_Nibble_Color_Highlight(int row, int column);
 void Display_Patt_Line(int In_Prev_Next, int Shadow_Pattern, int y, int rel, int track, int tVisible_Columns, int pattern);
 void Solo_Track(int track_to_solo);
+void Set_Font_Normal(void);
 
 // ------------------------------------------------------
 // Draw a pattern on screen
-void draw_pated(int track, int line, int petrack, int row)
+void Draw_Pattern(int track, int line, int petrack, int row)
 {
     int rel = 0;
     int liner;
@@ -299,17 +303,18 @@ void draw_pated(int track, int line, int petrack, int row)
     int max_size = Get_Visible_Tracks_Size((gui_track + Visible_Columns));
     if(max_size < MAX_PATT_SCREEN_X)
     {
-        if((gui_track + tVisible_Columns) < Songtracks)
+        if((gui_track + tVisible_Columns) < Song_Tracks)
         {
             tVisible_Columns++;
         }
     }
 
+    // Top of the pattern area
     y = 184;
 
     // Clear headers line
     SetColor(COL_PATTERN_LO_BACK);
-    bjbox(1, y, CONSOLE_WIDTH - 20, 12 + 8);
+    bjbox(1, y, CONSOLE_WIDTH - 20, 16 + chars_height);
 
     dover = PAT_COL_NOTE;
 
@@ -344,7 +349,7 @@ void draw_pated(int track, int line, int petrack, int row)
 
         // Channel number
         if((dover + (Cur_Char_size[cur_track] + 1)) >= MAX_PATT_SCREEN_X) goto Skip_Header;
-        Cur_Char_Function[cur_track].Fnc(dover, y, cur_track, 71, 71 + 6);
+        Cur_Char_Function[cur_track].Fnc(dover, y, cur_track, 71, 71 + 7);
         dover += Cur_Char_size[cur_track] + 1;
 
         // Mute on/off
@@ -359,11 +364,17 @@ void draw_pated(int track, int line, int petrack, int row)
         else Cur_Char_Function[cur_track].Fnc(dover, y, 24, 0, 0);
         dover += 29;
 
-        // Zoom on/off
-        if((dover + 17) >= MAX_PATT_SCREEN_X) goto Skip_Header;
-        if(Get_Track_Zoom(cur_track) != TRACK_MEDIUM) Cur_Char_Function[cur_track].Fnc(dover, y, 27, 0, 0);
-        else Cur_Char_Function[cur_track].Fnc(dover, y, 28, 0, 0);
-        dover += 17;
+        // Reduce zoom
+        if((dover + 9) >= MAX_PATT_SCREEN_X) goto Skip_Header;
+        if(Get_Track_Zoom(cur_track) == TRACK_SMALL) Cur_Char_Function[cur_track].Fnc(dover, y, 37, 0, 0);
+        else Cur_Char_Function[cur_track].Fnc(dover, y, 35, 0, 0);
+        dover += 9;
+
+        // Expand zoom
+        if((dover + 9) >= MAX_PATT_SCREEN_X) goto Skip_Header;
+        if(Get_Track_Zoom(cur_track) == TRACK_LARGE) Cur_Char_Function[cur_track].Fnc(dover, y, 38, 0, 0);
+        else Cur_Char_Function[cur_track].Fnc(dover, y, 36, 0, 0);
+        dover += 9;
 
 Skip_Header:
 
@@ -374,14 +385,14 @@ Skip_Header:
 
         // Reduce notes
         if((dover + 9) >= MAX_PATT_SCREEN_X) goto Skip_Header2;
-        if(Channels_MultiNotes[cur_track] == 1) Cur_Char_Function[cur_track].Fnc(dover, y + 8, 37, 0, 0);
-        else Cur_Char_Function[cur_track].Fnc(dover, y + 8, 35, 0, 0);
+        if(Channels_MultiNotes[cur_track] == 1) Cur_Char_Function[cur_track].Fnc(dover, y + chars_height, 37, 0, 0);
+        else Cur_Char_Function[cur_track].Fnc(dover, y + chars_height, 35, 0, 0);
         dover += 9;
 
         // Expand notes
         if((dover + 20) >= MAX_PATT_SCREEN_X) goto Skip_Header2;
-        if(Channels_MultiNotes[cur_track] == MAX_POLYPHONY) Cur_Char_Function[cur_track].Fnc(dover, y + 8, 38, 0, 0);
-        else Cur_Char_Function[cur_track].Fnc(dover, y + 8, 36, 0, 0);
+        if(Channels_MultiNotes[cur_track] == MAX_POLYPHONY) Cur_Char_Function[cur_track].Fnc(dover, y + chars_height, 38, 0, 0);
+        else Cur_Char_Function[cur_track].Fnc(dover, y + chars_height, 36, 0, 0);
         dover += 20;
 
 Skip_Header2:
@@ -439,14 +450,14 @@ Skip_Header2:
 
         // Reduce fx
         if((dover + 9) >= MAX_PATT_SCREEN_X) break;
-        if(Channels_Effects[cur_track] == 1) Cur_Char_Function[cur_track].Fnc(dover, y + 8, 37, 0, 0);
-        else Cur_Char_Function[cur_track].Fnc(dover, y + 8, 35, 0, 0);
+        if(Channels_Effects[cur_track] == 1) Cur_Char_Function[cur_track].Fnc(dover, y + chars_height, 37, 0, 0);
+        else Cur_Char_Function[cur_track].Fnc(dover, y + chars_height, 35, 0, 0);
         dover += 9;
 
         // Expand fx
         if((dover + 9) >= MAX_PATT_SCREEN_X) break;
-        if(Channels_Effects[cur_track] == MAX_FX) Cur_Char_Function[cur_track].Fnc(dover, y + 8, 38, 0, 0);
-        else Cur_Char_Function[cur_track].Fnc(dover, y + 8, 36, 0, 0);
+        if(Channels_Effects[cur_track] == MAX_FX) Cur_Char_Function[cur_track].Fnc(dover, y + chars_height, 38, 0, 0);
+        else Cur_Char_Function[cur_track].Fnc(dover, y + chars_height, 36, 0, 0);
         dover += 9;
 
         dover = save_dover;
@@ -510,17 +521,19 @@ Skip_Header2:
         idx_icons_fx++;
     }
 
-    y = 195 + 5;
+    y += chars_height * 2;
     Cur_Position2 = Cur_Position;
     Shadow_Pattern = 0;
     In_Prev_Next = FALSE;
     In_Prev_Next2 = FALSE;
 
+    int sub = chars_height == 16 ? 4 : -13;
     SetColor(COL_PATTERN_LO_BACK);
+ 
     bjbox(1,
           y,
           CONSOLE_WIDTH - 20,
-          (Cur_Height - 372) + Patterns_Lines_Offset
+          (Cur_Height - 384) + Patterns_Lines_Offset - sub
          );
 
     for(liner = -VIEWLINE; liner < VIEWLINE + (DISPLAYED_LINES % 2); liner++)
@@ -557,7 +570,7 @@ Skip_Header2:
                                 }
                                 if(!Cur_Position2) break;
                             }
-                            y += rel2_size2 * 8;
+                            y += rel2_size2 * chars_height;
                             liner += rel2_size2;
                             rel2_size -= rel2_size2;
                         }
@@ -569,7 +582,7 @@ Skip_Header2:
                         {
                             pattern = pSequence[Cur_Position2];
                             Display_Patt_Line(In_Prev_Next, Shadow_Pattern, y, rel, track, tVisible_Columns, pattern);
-                            y += 8;
+                            y += chars_height;
                             rel++;
                             if(rel >= patternLines[pSequence[Cur_Position2]])
                             {
@@ -618,11 +631,11 @@ Go_Display:
             }
             else
             {
-                draw_pated_highlight(gui_track, line, Track_Under_Caret, Column_Under_Caret, y);
-                y += 8;
+                Draw_Patt_Line_Highlighted(gui_track, line, Track_Under_Caret, Column_Under_Caret, y);
+                y += chars_height;
             }
         }
-        y += 8;
+        y += chars_height;
 Disp:;
     }
 }
@@ -660,7 +673,7 @@ void Display_Patt_Line(int In_Prev_Next, int Shadow_Pattern,
     cur_column = Get_Track_Nibble_Start(Channels_MultiNotes, Channels_Effects, track) + track;
 
     // Browse all tracks to seek synchro markers
-    for(tracky = 0; tracky < Songtracks; tracky++)
+    for(tracky = 0; tracky < Song_Tracks; tracky++)
     {
         offset_t = Get_Pattern_Offset(pattern, tracky, rel);
         unsigned char p_e_sync;
@@ -1019,10 +1032,10 @@ Write_Fx:
     {
         // 303 units aren't bounded to any track so we can try another one for those
         Cur_Track++;
-        if(Cur_Track >= Songtracks) Cur_Track = 0;
+        if(Cur_Track >= Song_Tracks) Cur_Track = 0;
         // Try with the current amount of tracks
         Track_Tried++;
-        if(Track_Tried < Songtracks) goto Write_Fx;
+        if(Track_Tried < Song_Tracks) goto Write_Fx;
         // Back to where we were
         Cur_Track = Track;
     }
@@ -1040,7 +1053,7 @@ Write_Fx:
 
 // ------------------------------------------------------
 // Draw the caret pattern row
-void draw_pated_highlight(int track, int line, int petrack, int row, int ypos)
+void Draw_Patt_Line_Highlighted(int track, int line, int petrack, int row, int ypos)
 {
     int offset_t;
     int dover;
@@ -1061,7 +1074,7 @@ void draw_pated_highlight(int track, int line, int petrack, int row, int ypos)
     int max_size = Get_Visible_Tracks_Size((gui_track + Visible_Columns));
     if(max_size < MAX_PATT_SCREEN_X)
     {
-        if((gui_track + tVisible_Columns) < Songtracks)
+        if((gui_track + tVisible_Columns) < Song_Tracks)
         {
             tVisible_Columns++;
         }
@@ -1073,10 +1086,10 @@ void draw_pated_highlight(int track, int line, int petrack, int row, int ypos)
 
     if(RawPatterns)
     {
-        if(tVisible_Columns > Songtracks) tVisible_Columns = Songtracks;
+        if(tVisible_Columns > Song_Tracks) tVisible_Columns = Song_Tracks;
 
         // Browse all tracks to seek synchro markers
-        for(tracky = 0; tracky < Songtracks; tracky++)
+        for(tracky = 0; tracky < Song_Tracks; tracky++)
         {
             offset_t = Get_Pattern_Offset(pattern, tracky, line);
             unsigned char p_e_sync;
@@ -1089,7 +1102,7 @@ void draw_pated_highlight(int track, int line, int petrack, int row, int ypos)
         }
 
         SetColor(COL_PATTERN_LO_BACK);
-        bjbox(1, ypos, CHANNELS_WIDTH - 1, 16);
+        bjbox(1, ypos, CHANNELS_WIDTH - 1, chars_height * 2);
 
         dover = PAT_COL_NOTE;
         Last_Pixel = dover;
@@ -1552,14 +1565,14 @@ void draw_pated_highlight(int track, int line, int petrack, int row, int ypos)
         // Synchro marker
         if(synchro_fx)
         {
-            Letter(24, ypos + 4, 33, 0, 0);
+            Letter(24, ypos + (chars_height >> 1), 33, 0, 0);
         }
     }
 }
 
 // ------------------------------------------------------
 // Update the displayed pattern data
-void Actupated(int modac)
+void Update_Pattern(int modac)
 {
     int nlines;
     int i;
@@ -1622,7 +1635,7 @@ void Actupated(int modac)
     int max_channel_dat = Get_Max_Nibble_Track(Channels_MultiNotes, Channels_Effects, Track_Under_Caret) - 1;
     if(Column_Under_Caret > max_channel_dat)
     {
-        if(Track_Under_Caret < Songtracks - 1)
+        if(Track_Under_Caret < Song_Tracks - 1)
         {
             Column_Under_Caret = 0;
             Track_Under_Caret++;
@@ -1639,7 +1652,7 @@ void Actupated(int modac)
         Track_Under_Caret--;
         if(Track_Under_Caret < 0)
         {
-            max_channel_dat = Get_Max_Nibble_Track(Channels_MultiNotes, Channels_Effects, Songtracks - 1) - 1;
+            max_channel_dat = Get_Max_Nibble_Track(Channels_MultiNotes, Channels_Effects, Song_Tracks - 1) - 1;
         }
         else
         {
@@ -1648,9 +1661,9 @@ void Actupated(int modac)
         gui_action = GUI_CMD_SET_FOCUS_TRACK;
         Column_Under_Caret = max_channel_dat;
     }
-    if(Track_Under_Caret > Songtracks - 1)
+    if(Track_Under_Caret > Song_Tracks - 1)
     {
-        while(Track_Under_Caret > Songtracks - 1)
+        while(Track_Under_Caret > Song_Tracks - 1)
         {
             Track_Under_Caret--;
         }
@@ -1662,8 +1675,8 @@ void Actupated(int modac)
     // Keep the caret in focus
     if(Track_Under_Caret < 0)
     {
-        Track_Under_Caret = Songtracks - 1;
-        gui_track = Songtracks - (Visible_Columns);
+        Track_Under_Caret = Song_Tracks - 1;
+        gui_track = Song_Tracks - (Visible_Columns);
         if(gui_track < 0) gui_track = 0;
         gui_action = GUI_CMD_SET_FOCUS_TRACK;
     }
@@ -1714,7 +1727,7 @@ void Actupated(int modac)
 
     Cur_Line = Get_Pattern_Line();
 
-    draw_pated(gui_track, Cur_Line, Track_Under_Caret, Column_Under_Caret);
+    Draw_Pattern(gui_track, Cur_Line, Track_Under_Caret, Column_Under_Caret);
 
     if(Continuous_Scroll)
     {
@@ -1725,22 +1738,22 @@ void Actupated(int modac)
             Max_Lines_Song += patternLines[pSequence[i]];
         }
         // Slider for the entire song
-        Realslider_Vert(MAX_PATT_SCREEN_X + 1, 200, Get_Song_Line(),
-                        DISPLAYED_LINES,
-                        DISPLAYED_LINES + Max_Lines_Song,
-                        (Cur_Height - 452) + Patterns_Lines_Offset,
-                        TRUE,
-                        TRUE);
+        Real_Slider_Vert(MAX_PATT_SCREEN_X + 1, 200, Get_Song_Line(),
+                         DISPLAYED_LINES,
+                         DISPLAYED_LINES + Max_Lines_Song,
+                         (Cur_Height - 452) + Patterns_Lines_Offset,
+                         TRUE,
+                         TRUE);
     }
     else
     {
         // Just for the pattern
-        Realslider_Vert(MAX_PATT_SCREEN_X + 1, 200, Cur_Line,
-                        DISPLAYED_LINES,
-                        patternLines[pSequence[Cur_Position]] + DISPLAYED_LINES,
-                        (Cur_Height - 452) + Patterns_Lines_Offset,
-                        TRUE,
-                        TRUE);
+        Real_Slider_Vert(MAX_PATT_SCREEN_X + 1, 200, Cur_Line,
+                         DISPLAYED_LINES,
+                         patternLines[pSequence[Cur_Position]] + DISPLAYED_LINES,
+                         (Cur_Height - 452) + Patterns_Lines_Offset,
+                         TRUE,
+                         TRUE);
     }
 }
 
@@ -1793,8 +1806,8 @@ void Draw_Blocks_Buffers_Status()
 }
 
 // ------------------------------------------------------
-// Actually the extra data associated with the pattern
-void Actualize_Patterned(void)
+// Actuallize the extra data associated with the pattern
+void Actualize_Pattern_Ed(void)
 {
     if(Current_Edit_Steps < 0) Current_Edit_Steps = 16;
     if(Current_Edit_Steps > 16) Current_Edit_Steps = 0;
@@ -2093,7 +2106,7 @@ int Get_Track_Over_Mouse(int Mouse, int *Was_Scrolling, int Left)
                 // Scroll it
                 Pattern_Delay_Horiz_Right = 0;
                 Pattern_First_Delay_Horiz_Right = 200.0f;
-                if(under_mouse > (Songtracks - 1)) under_mouse = Songtracks - 1;
+                if(under_mouse > (Song_Tracks - 1)) under_mouse = Song_Tracks - 1;
                 if(!Left) Column_Under_Caret = Get_Last_Track_Column(under_mouse);
                 if(Was_Scrolling) *Was_Scrolling = TRUE;
             }
@@ -2126,7 +2139,7 @@ int Get_Track_Over_Mouse(int Mouse, int *Was_Scrolling, int Left)
                     // Scroll it
                     Pattern_Delay_Horiz_Right_Slow = 0;
                     Pattern_First_Delay_Horiz_Right_Slow = 200.0f;
-                    if(under_mouse > (Songtracks - 1)) under_mouse = Songtracks - 1;
+                    if(under_mouse > (Song_Tracks - 1)) under_mouse = Song_Tracks - 1;
                     if(!Left) Column_Under_Caret = Get_Last_Track_Column(under_mouse);
                     if(Was_Scrolling) *Was_Scrolling = TRUE;
                 }
@@ -2150,7 +2163,7 @@ int Get_Track_Over_Mouse(int Mouse, int *Was_Scrolling, int Left)
         int tVisible_Columns = Visible_Columns;
         if(max_size < Last_Pixel)
         {
-            if((gui_track + tVisible_Columns) < Songtracks)
+            if((gui_track + tVisible_Columns) < Song_Tracks)
             {
                 tVisible_Columns++;
             }
@@ -2169,7 +2182,7 @@ int Get_Track_Over_Mouse(int Mouse, int *Was_Scrolling, int Left)
         }
         if(found_track == FALSE && mouse_coord >= 0)
         {
-            under_mouse = Songtracks - 1;
+            under_mouse = Song_Tracks - 1;
         }
     }
 
@@ -2214,7 +2227,7 @@ int Get_Track_Over_Mouse(int Mouse, int *Was_Scrolling, int Left)
         Column_Under_Caret = 0;
     }
 
-    if(under_mouse > Songtracks - 1) under_mouse = Songtracks - 1;
+    if(under_mouse > Song_Tracks - 1) under_mouse = Song_Tracks - 1;
     if(under_mouse < 0) under_mouse = 0;
     return(under_mouse);
 }
@@ -2358,7 +2371,7 @@ int Get_Last_Column_And_Track(int *track)
     int cur_track;
 
     *track = gui_track;
-    for(i = gui_track; i < Songtracks; i++)
+    for(i = gui_track; i < Song_Tracks; i++)
     {
         channel_size = Get_Track_Size(i, NULL);
         if((pixel_visible_tracks + channel_size - 1) >= MAX_PATT_SCREEN_X)
@@ -2534,7 +2547,7 @@ get_tracks_boundaries:
     {
         *column = tmp_column;
     }
-    int mouse_line = (Mouse.y - (183 + 17));
+    int mouse_line = (Mouse.y - (184 + (chars_height * 2)));
     if(mouse_line >= 0)
     {
         Visible_Columns = Get_Visible_Complete_Tracks(&pixels);
@@ -2542,7 +2555,7 @@ get_tracks_boundaries:
         {
             need_scroll = -1;
         }
-        if(max_mouse_coord > pixels && (Visible_Columns + gui_track) < Songtracks)
+        if(max_mouse_coord > pixels && (Visible_Columns + gui_track) < Song_Tracks)
         {
             need_scroll = 1;
         }
@@ -2557,11 +2570,14 @@ int Get_Line_Over_Mouse(int *Need_Scroll)
 {
     int Cur_Position = Get_Song_Position();
 
-    int mouse_line = (Mouse.y - (183 + 17));
+    int mouse_line = (Mouse.y - (184 + (chars_height * 2)));
     *Need_Scroll = 0;
     // (Highlight line is doubled)
-    if(mouse_line >= ((VIEWLINE + 1) * 8)) mouse_line -= 8;
-    mouse_line /= 8;
+    if(mouse_line >= ((VIEWLINE + 1) * chars_height))
+    {
+        mouse_line -= chars_height;
+    }
+    mouse_line /= chars_height;
     mouse_line -= VIEWLINE;
     mouse_line += Pattern_Line;
     if(mouse_line > (VIEWLINE + Pattern_Line))
@@ -2579,7 +2595,10 @@ int Get_Line_Over_Mouse(int *Need_Scroll)
             *Need_Scroll = -(-(VIEWLINE - Pattern_Line) - mouse_line);
         }
     }
-    if(mouse_line > patternLines[pSequence[Cur_Position]] - 1) mouse_line = patternLines[pSequence[Cur_Position]] - 1;
+    if(mouse_line > patternLines[pSequence[Cur_Position]] - 1)
+    {
+        mouse_line = patternLines[pSequence[Cur_Position]] - 1;
+    }
     if(mouse_line < 0)
     {
         mouse_line = 0;
@@ -2596,7 +2615,7 @@ int Get_Visible_Complete_Tracks(int *pixels)
     int i;
     int nbr_tracks = 0;
 
-    for(i = gui_track; i < Songtracks; i++)
+    for(i = gui_track; i < Song_Tracks; i++)
     {
         channel_size = Get_Track_Size(i, NULL);
         if((pixel_visible_tracks + channel_size - 1) >= MAX_PATT_SCREEN_X)
@@ -2621,7 +2640,7 @@ int Get_Visible_Partial_Tracks(void)
     int max_size = Get_Visible_Tracks_Size((gui_track + Visible_Columns));
     if(max_size < MAX_PATT_SCREEN_X)
     {
-        if((gui_track + tracks) < Songtracks)
+        if((gui_track + tracks) < Song_Tracks)
         {
             tracks++;
         }
@@ -2675,21 +2694,21 @@ void Set_Track_Slider(int pos)
     }
     float fpos = (float) pos;
 
-    if(!(Songtracks - Visible_Columns))
+    if(!(Song_Tracks - Visible_Columns))
     {
         fpos = 0.0f;
     }
-    Realslider_Horiz(POS_HORIZ_SLIDER,
-                     (Cur_Height - 171) + Patterns_Lines_Offset,
-                     (int) fpos,
-                     Visible_Columns,
-                     Songtracks,
-                     Cur_Width - (POS_HORIZ_SLIDER + 1),
-                     TRUE);
+    Real_Slider_Horiz(POS_HORIZ_SLIDER,
+                      (Cur_Height - 171) + Patterns_Lines_Offset,
+                      (int) fpos,
+                      Visible_Columns,
+                      Song_Tracks,
+                      Cur_Width - (POS_HORIZ_SLIDER + 1),
+                      TRUE);
 }
 
 // ------------------------------------------------------
-// Handle the mouse wheel event
+// Handle the mouse wheel events
 void Mouse_Wheel_Pattern_Ed(int roll_amount, int allow)
 {
     int Cur_Position = Get_Song_Position();
@@ -2697,7 +2716,7 @@ void Mouse_Wheel_Pattern_Ed(int roll_amount, int allow)
     if(allow)
     {
         // Scroll the patterns
-        if(zcheckMouse_nobutton(0, 182, CONSOLE_WIDTH, (Cur_Height - 354) + Patterns_Lines_Offset) == 1)
+        if(Check_Mouse_No_Button(0, 184, CONSOLE_WIDTH, (Cur_Height - 354) + Patterns_Lines_Offset) == 1)
         {
             Pattern_Line += roll_amount;
             if(Continuous_Scroll && !Cur_Position) if(Pattern_Line < 0) Pattern_Line = 0;
@@ -2708,12 +2727,12 @@ void Mouse_Wheel_Pattern_Ed(int roll_amount, int allow)
                     Pattern_Line = patternLines[pSequence[Cur_Position]] - 1;
                 }
             }
-            Actupated(0);
+            Update_Pattern(0);
         }
     }
 
     // Current track slider (horizontal)
-    if(zcheckMouse(POS_HORIZ_SLIDER - 1, (Cur_Height - 171) + Patterns_Lines_Offset,
+    if(Check_Mouse(POS_HORIZ_SLIDER - 1, (Cur_Height - 171) + Patterns_Lines_Offset,
                    (Cur_Width - (POS_HORIZ_SLIDER + 1)), 16))
     {
         Visible_Columns = Get_Visible_Complete_Tracks(NULL);
@@ -2723,11 +2742,11 @@ void Mouse_Wheel_Pattern_Ed(int roll_amount, int allow)
         {
             gui_track = 0;
         }
-        if(gui_track >= ((Songtracks - Visible_Columns)))
+        if(gui_track >= ((Song_Tracks - Visible_Columns)))
         {
-            gui_track = ((Songtracks - Visible_Columns));
+            gui_track = ((Song_Tracks - Visible_Columns));
         }
-        Actupated(1);
+        Update_Pattern(1);
     }
 }
 
@@ -2736,9 +2755,10 @@ void Mouse_Wheel_Pattern_Ed(int roll_amount, int allow)
 void Mouse_Sliders_Right_Pattern_Ed(void)
 {
     int sched_line;
+    int sub = chars_height == 16 ? 4 : -13;
 
     // Position the caret on the specified track/column with the mouse
-    if(zcheckMouse(1, 183 + 15, CHANNELS_WIDTH, (Cur_Height - 371) + Patterns_Lines_Offset))
+    if(Check_Mouse(1, 184 + (chars_height * 2), CHANNELS_WIDTH, (Cur_Height - 384 - sub) + Patterns_Lines_Offset))
     {
         int In_Scrolling = FALSE;
         Get_Column_Over_Mouse(&Track_Under_Caret,
@@ -2746,14 +2766,14 @@ void Mouse_Sliders_Right_Pattern_Ed(void)
                               FALSE,
                               &In_Scrolling,
                               FALSE);
-        Actupated(0);
+        Update_Pattern(0);
         gui_action = GUI_CMD_SET_FOCUS_TRACK;
     }
 
     // Go to the row selected with the mouse
     if(!Song_Playing)
     {
-        if(zcheckMouse(1, 183 + 15, CHANNELS_WIDTH, (Cur_Height - 371) + Patterns_Lines_Offset))
+        if(Check_Mouse(1, 184 + (chars_height * 2), CHANNELS_WIDTH, (Cur_Height - 384 - sub) + Patterns_Lines_Offset))
         {
             if(!is_recording)
             {
@@ -2780,7 +2800,7 @@ void Mouse_Sliders_Right_Pattern_Ed(void)
                     Pattern_Line = sched_line;
                 }
             }
-            Actupated(0);
+            Update_Pattern(0);
         }
     }
 }
@@ -2790,7 +2810,7 @@ void Mouse_Sliders_Right_Pattern_Ed(void)
 void Mouse_Sliders_Pattern_Ed(void)
 {
     // Current track slider (horizontal)
-    if(zcheckMouse(POS_HORIZ_SLIDER - 1, (Cur_Height - 171) + Patterns_Lines_Offset,
+    if(Check_Mouse(POS_HORIZ_SLIDER - 1, (Cur_Height - 171) + Patterns_Lines_Offset,
                    (Cur_Width - (POS_HORIZ_SLIDER + 1)), 16))
     {
         float Pos_Mouse = (float) (Mouse.x - (POS_HORIZ_SLIDER - 1));
@@ -2800,15 +2820,15 @@ void Mouse_Sliders_Pattern_Ed(void)
         if(Pos_Mouse > 1.0f) Pos_Mouse = 1.0f;
         Visible_Columns = Get_Visible_Complete_Tracks(NULL);
 
-        Pos_Mouse = Pos_Mouse * ((Songtracks - Visible_Columns) + 1);
+        Pos_Mouse = Pos_Mouse * ((Song_Tracks - Visible_Columns) + 1);
         gui_track = (int) Pos_Mouse;
-        Actupated(1);
+        Update_Pattern(1);
     }
 
     if(Continuous_Scroll)
     {
         // Rows slider (vertical) (whole song)
-        if(zcheckMouse(MAX_PATT_SCREEN_X + 1, 200, 16 + 1, (Cur_Height - 452) + Patterns_Lines_Offset) & !Song_Playing)
+        if(Check_Mouse(MAX_PATT_SCREEN_X + 1, 200, 16 + 1, (Cur_Height - 452) + Patterns_Lines_Offset) & !Song_Playing)
         {
             int max_length;
             int Max_Lines_Song;
@@ -2845,13 +2865,13 @@ void Mouse_Sliders_Pattern_Ed(void)
             }
             Pattern_Line = final_row;
             Goto_Song_Position(i);
-            Actupated(0);
+            Update_Pattern(0);
         }
     }
     else
     {
         // Rows slider (vertical) (pattern only)
-        if(zcheckMouse(MAX_PATT_SCREEN_X + 1, 200 + (Continuous_Scroll * 80), 16 + 1, (Cur_Height - 452) - (Continuous_Scroll * 80) + Patterns_Lines_Offset) & !Song_Playing)
+        if(Check_Mouse(MAX_PATT_SCREEN_X + 1, 200 + (Continuous_Scroll * 80), 16 + 1, (Cur_Height - 452) - (Continuous_Scroll * 80) + Patterns_Lines_Offset) & !Song_Playing)
         {
             int final_row;
             int Cur_Position = Get_Song_Position();
@@ -2869,12 +2889,13 @@ void Mouse_Sliders_Pattern_Ed(void)
             if(final_row < 0) final_row = 0;
             if(final_row > patternLines[pSequence[Cur_Position]] - 1) final_row = patternLines[pSequence[Cur_Position]] - 1;
             Pattern_Line = final_row;
-            Actupated(0);
+            Update_Pattern(0);
         }
     }
+    int sub = chars_height == 16 ? 4 : -13;
 
     // End of the marking stuff
-    if(zcheckMouse(1, 183 + 15, MAX_PATT_SCREEN_X, (Cur_Height - 371) + Patterns_Lines_Offset) && !Song_Playing)
+    if(Check_Mouse(1, 184 + (chars_height * 2) - 1, MAX_PATT_SCREEN_X, (Cur_Height - 384 - sub) + Patterns_Lines_Offset) && !Song_Playing)
     {
         int track;
         int column;
@@ -2912,7 +2933,7 @@ void Mouse_Sliders_Pattern_Ed(void)
                         {
                             Track_Under_Caret = Visible_Columns + gui_track - 1;
                         }
-                        Actupated(0);
+                        Update_Pattern(0);
                         gui_action = GUI_CMD_SET_FOCUS_TRACK;
                     }
                 }
@@ -2954,16 +2975,17 @@ void Mouse_Sliders_Pattern_Ed(void)
 }
 
 // ------------------------------------------------------
-// Handle the left mouse button event
+// Handle the left mouse button events
 void Mouse_Left_Pattern_Ed(void)
 {
     int i;
     int start_mute_check_x;
     int tracks;
     int Need_Scroll;
+    int sub = chars_height == 16 ? 4 : -13;
 
     // Start of the marking block
-    if(zcheckMouse(1, 183 + 15, MAX_PATT_SCREEN_X, (Cur_Height - 371) + Patterns_Lines_Offset) && !Song_Playing)
+    if(Check_Mouse(1, 184 + (chars_height * 2) - 1, MAX_PATT_SCREEN_X, (Cur_Height - 384 - sub) + Patterns_Lines_Offset) && !Song_Playing)
     {
         int track;
         int column;
@@ -2973,50 +2995,50 @@ void Mouse_Left_Pattern_Ed(void)
     }
 
     // Prev row
-    if(zcheckMouse(MAX_PATT_SCREEN_X + 1, 184, 16 + 1, 14) & !Song_Playing)
+    if(Check_Mouse(MAX_PATT_SCREEN_X + 1, 184, 16 + 1, 14) & !Song_Playing)
     {
         Goto_Previous_Row(FALSE);
     }
 
     // Next row
-    if(zcheckMouse(MAX_PATT_SCREEN_X + 1, (Cur_Height - 251) + Patterns_Lines_Offset, 16 + 1, 14) & !Song_Playing)
+    if(Check_Mouse(MAX_PATT_SCREEN_X + 1, (Cur_Height - 251) + Patterns_Lines_Offset, 16 + 1, 14) & !Song_Playing)
     {
         Goto_Next_Row(FALSE);
     }
 
     // Set buffer 1
-    if(zcheckMouse(MAX_PATT_SCREEN_X + 1, (Cur_Height - 251) + (16 * 1) + Patterns_Lines_Offset, 16 + 1, 14))
+    if(Check_Mouse(MAX_PATT_SCREEN_X + 1, (Cur_Height - 251) + (16 * 1) + Patterns_Lines_Offset, 16 + 1, 14))
     {
         Curr_Buff_Block = 0;
         Draw_Pattern_Right_Stuff();
-        Actupated(0);
+        Update_Pattern(0);
         teac = 0;
         gui_action = GUI_CMD_UPDATE_SEQUENCER;
     }
     // Set buffer 2
-    if(zcheckMouse(MAX_PATT_SCREEN_X + 1, (Cur_Height - 251) + (16 * 2) + Patterns_Lines_Offset, 16 + 1, 14))
+    if(Check_Mouse(MAX_PATT_SCREEN_X + 1, (Cur_Height - 251) + (16 * 2) + Patterns_Lines_Offset, 16 + 1, 14))
     {
         Curr_Buff_Block = 1;
         Draw_Pattern_Right_Stuff();
-        Actupated(0);
+        Update_Pattern(0);
         teac = 0;
         gui_action = GUI_CMD_UPDATE_SEQUENCER;
     }
     // Set buffer 3
-    if(zcheckMouse(MAX_PATT_SCREEN_X + 1, (Cur_Height - 251) + (16 * 3) + Patterns_Lines_Offset, 16 + 1, 14))
+    if(Check_Mouse(MAX_PATT_SCREEN_X + 1, (Cur_Height - 251) + (16 * 3) + Patterns_Lines_Offset, 16 + 1, 14))
     {
         Curr_Buff_Block = 2;
         Draw_Pattern_Right_Stuff();
-        Actupated(0);
+        Update_Pattern(0);
         teac = 0;
         gui_action = GUI_CMD_UPDATE_SEQUENCER;
     }
     // Set buffer 4
-    if(zcheckMouse(MAX_PATT_SCREEN_X + 1, (Cur_Height - 251) + (16 * 4) + Patterns_Lines_Offset, 16 + 1, 14))
+    if(Check_Mouse(MAX_PATT_SCREEN_X + 1, (Cur_Height - 251) + (16 * 4) + Patterns_Lines_Offset, 16 + 1, 14))
     {
         Curr_Buff_Block = 3;
         Draw_Pattern_Right_Stuff();
-        Actupated(0);
+        Update_Pattern(0);
         teac = 0;
         gui_action = GUI_CMD_UPDATE_SEQUENCER;
     }
@@ -3026,7 +3048,7 @@ void Mouse_Left_Pattern_Ed(void)
     tracks = Get_Visible_Partial_Tracks();
     for(i = gui_track; i < gui_track + tracks; i++)
     {
-        if(zcheckMouse(start_mute_check_x + Cur_Char_size[i], 183, 28, 7))
+        if(Check_Mouse(start_mute_check_x + Cur_Char_size[i], 184 - 1, 28, chars_height))
         {
             gui_action = GUI_CMD_SWITCH_TRACK_MUTE_STATE;
             break;
@@ -3039,7 +3061,7 @@ void Mouse_Left_Pattern_Ed(void)
     tracks = Get_Visible_Partial_Tracks();
     for(i = gui_track; i < gui_track + tracks; i++)
     {
-        if(zcheckMouse(start_mute_check_x + Cur_Char_size[i], 183, 28, 7))
+        if(Check_Mouse(start_mute_check_x + Cur_Char_size[i], 184 - 1, 28, chars_height))
         {
             int Cur_Position = Get_Song_Position();
             int tmp_track = Get_Track_Over_Mouse(Mouse.x, NULL, FALSE);
@@ -3049,14 +3071,20 @@ void Mouse_Left_Pattern_Ed(void)
         start_mute_check_x += Get_Track_Size(i, NULL);
     }
 
-    // Track zoom > large
+    // Reduce/Expand track zoom
     start_mute_check_x = PAT_COL_NOTE + 1 + 4 + (29 * 2) + 1;
     tracks = Get_Visible_Partial_Tracks();
     for(i = gui_track; i < gui_track + tracks; i++)
     {
-        if(zcheckMouse(start_mute_check_x + Cur_Char_size[i], 183, 16, 7))
+        if(Check_Mouse(start_mute_check_x + Cur_Char_size[i], 184 - 1, 8, chars_height))
         {
-            gui_action = GUI_CMD_SWITCH_TRACK_LARGE_STATE;
+            gui_action = GUI_CMD_SWITCH_TRACK_REDUCE_STATE;
+            break;
+        }
+
+        if(Check_Mouse(start_mute_check_x + Cur_Char_size[i] + 8, 184 - 1, 8, chars_height))
+        {
+            gui_action = GUI_CMD_SWITCH_TRACK_EXPAND_STATE;
             break;
         }
         start_mute_check_x += Get_Track_Size(i, NULL);
@@ -3067,7 +3095,7 @@ void Mouse_Left_Pattern_Ed(void)
     tracks = Get_Visible_Partial_Tracks();
     for(i = gui_track; i < gui_track + tracks; i++)
     {
-        if(zcheckMouse(start_mute_check_x , 183 + 8, 8, 7))
+        if(Check_Mouse(start_mute_check_x , 184 + chars_height - 2, 8, chars_height))
         {
             gui_action = GUI_CMD_REDUCE_TRACK_NOTES;
             break;
@@ -3080,7 +3108,7 @@ void Mouse_Left_Pattern_Ed(void)
     tracks = Get_Visible_Partial_Tracks();
     for(i = gui_track; i < gui_track + tracks; i++)
     {
-        if(zcheckMouse(start_mute_check_x, 183 + 8, 8, 7))
+        if(Check_Mouse(start_mute_check_x, 184 + chars_height - 2, 8, chars_height))
         {
             gui_action = GUI_CMD_EXPAND_TRACK_NOTES;
             break;
@@ -3093,7 +3121,7 @@ void Mouse_Left_Pattern_Ed(void)
     for(i = 0; i < tracks; i++)
     {
         start_mute_check_x = pos_effects_icons[i] - 1;
-        if(zcheckMouse(start_mute_check_x, 183 + 8, 8, 7))
+        if(Check_Mouse(start_mute_check_x, 184 + chars_height - 2, 8, chars_height))
         {
             gui_action = GUI_CMD_REDUCE_TRACK_EFFECTS;
             break;
@@ -3105,7 +3133,7 @@ void Mouse_Left_Pattern_Ed(void)
     for(i = 0; i < tracks; i++)
     {
         start_mute_check_x = pos_effects_icons[i] + 9 - 1;
-        if(zcheckMouse(start_mute_check_x, 183 + 8, 8, 7))
+        if(Check_Mouse(start_mute_check_x, 184 + chars_height - 2, 8, chars_height))
         {
             gui_action = GUI_CMD_EXPAND_TRACK_EFFECTS;
             break;
@@ -3114,7 +3142,7 @@ void Mouse_Left_Pattern_Ed(void)
 }
 
 // ------------------------------------------------------
-// Handle the right mouse button event
+// Handle the right mouse button events
 void Mouse_Right_Pattern_Ed(void)
 {
     int start_mute_check_x;
@@ -3122,12 +3150,12 @@ void Mouse_Right_Pattern_Ed(void)
     int i;
 
     // Decrease/Increase steps
-    if(zcheckMouse(90, 126, 16, 16))
+    if(Check_Mouse(90, 126, 16, 16))
     {
         Current_Edit_Steps = 0;
         gui_action = GUI_CMD_UPDATE_PATTERN_ED;
     }
-    if(zcheckMouse(134, 126, 16, 16))
+    if(Check_Mouse(134, 126, 16, 16))
     {
         Current_Edit_Steps = 16;
         gui_action = GUI_CMD_UPDATE_PATTERN_ED;
@@ -3139,7 +3167,7 @@ void Mouse_Right_Pattern_Ed(void)
     for(i = gui_track; i < gui_track + tracks; i++)
     {
         if(start_mute_check_x + Cur_Char_size[i] >= MAX_PATT_SCREEN_X) break;
-        if(zcheckMouse(start_mute_check_x + Cur_Char_size[i], 183, 28, 7))
+        if(Check_Mouse(start_mute_check_x + Cur_Char_size[i], 184 - 1, 28, chars_height))
         {
             int tmp_track = Get_Track_Over_Mouse(Mouse.x, NULL, FALSE);
             Solo_Track(tmp_track);
@@ -3155,7 +3183,7 @@ void Mouse_Right_Pattern_Ed(void)
     for(i = gui_track; i < gui_track + tracks; i++)
     {
         if(start_mute_check_x + Cur_Char_size[i] >= MAX_PATT_SCREEN_X) break;
-        if(zcheckMouse(start_mute_check_x + Cur_Char_size[i], 183, 28, 7))
+        if(Check_Mouse(start_mute_check_x + Cur_Char_size[i], 184 - 1, 28, chars_height))
         {
             int Cur_Position = Get_Song_Position();
             int tmp_track = Get_Track_Over_Mouse(Mouse.x, NULL, FALSE);
@@ -3165,24 +3193,14 @@ void Mouse_Right_Pattern_Ed(void)
         start_mute_check_x += Get_Track_Size(i, NULL);
     }
 
-    // Track zoom > small
-    start_mute_check_x = PAT_COL_NOTE + 1 + 4 + (29 * 2);
-    tracks = Get_Visible_Partial_Tracks();
-    for(i = gui_track; i < gui_track + tracks; i++)
-    {
-        if(start_mute_check_x + Cur_Char_size[i] >= MAX_PATT_SCREEN_X) break;
-        if(zcheckMouse(start_mute_check_x + Cur_Char_size[i], 183, 16, 7)) gui_action = GUI_CMD_SWITCH_TRACK_SMALL_STATE;
-        start_mute_check_x += Get_Track_Size(i, NULL);
-    }
-
     // Prev page
-    if(zcheckMouse(MAX_PATT_SCREEN_X + 1, 184, 16 + 1, 14) & !Song_Playing)
+    if(Check_Mouse(MAX_PATT_SCREEN_X + 1, 184, 16 + 1, 14) & !Song_Playing)
     {
         Goto_Previous_Page(FALSE);
     }
 
     // Next page
-    if(zcheckMouse(MAX_PATT_SCREEN_X + 1, (Cur_Height - 251) + Patterns_Lines_Offset, 16 + 1, 14) & !Song_Playing)
+    if(Check_Mouse(MAX_PATT_SCREEN_X + 1, (Cur_Height - 251) + Patterns_Lines_Offset, 16 + 1, 14) & !Song_Playing)
     {
         Goto_Next_Page(FALSE);
     }
@@ -3242,7 +3260,7 @@ void Goto_Previous_Row(int Remove_Sel)
     if(Remove_Sel) Select_Block_Keyboard(BLOCK_MARK_ROWS);
     Pattern_Line--;
     if(Continuous_Scroll && !Cur_Position) if(Pattern_Line < 0) Pattern_Line = 0;
-    Actupated(0);
+    Update_Pattern(0);
     if(Remove_Sel) Select_Block_Keyboard(BLOCK_MARK_ROWS);
 }
 
@@ -3255,7 +3273,7 @@ void Goto_Next_Row(int Remove_Sel)
     if(Remove_Sel) Select_Block_Keyboard(BLOCK_MARK_ROWS);
     Pattern_Line++;
     if(Continuous_Scroll && (Cur_Position == Song_Length - 1)) if(Pattern_Line >= patternLines[pSequence[Cur_Position]]) Pattern_Line = patternLines[pSequence[Cur_Position]] - 1;
-    Actupated(0);
+    Update_Pattern(0);
     if(Remove_Sel) Select_Block_Keyboard(BLOCK_MARK_ROWS);
 }
 
@@ -3269,7 +3287,7 @@ void Goto_Previous_Page(int Remove_Sel)
     Pattern_Line -= 16;
     if(!is_recording && !Continuous_Scroll) if(Pattern_Line < 0) Pattern_Line = 0;
     if(Continuous_Scroll && !Cur_Position) if(Pattern_Line < 0) Pattern_Line = 0;
-    Actupated(0);
+    Update_Pattern(0);
     if(Remove_Sel) Select_Block_Keyboard(BLOCK_MARK_ROWS);
 }
 
@@ -3283,7 +3301,7 @@ void Goto_Next_Page(int Remove_Sel)
     Pattern_Line += 16;
     if(!is_recording && !Continuous_Scroll) if(Pattern_Line >= patternLines[pSequence[Cur_Position]]) Pattern_Line = patternLines[pSequence[Cur_Position]] - 1;
     if(Continuous_Scroll && (Cur_Position == Song_Length - 1)) if(Pattern_Line >= patternLines[pSequence[Cur_Position]]) Pattern_Line = patternLines[pSequence[Cur_Position]] - 1;
-    Actupated(0);
+    Update_Pattern(0);
     if(Remove_Sel) Select_Block_Keyboard(BLOCK_MARK_ROWS);
 }
 
@@ -3293,7 +3311,7 @@ void Goto_Previous_Column(void)
 {
     Select_Block_Keyboard(BLOCK_MARK_TRACKS);
     Column_Under_Caret--;
-    Actupated(0);
+    Update_Pattern(0);
     Select_Block_Keyboard(BLOCK_MARK_TRACKS);
     gui_action = GUI_CMD_SET_FOCUS_TRACK;
 }
@@ -3304,7 +3322,7 @@ void Goto_Next_Column(void)
 {
     Select_Block_Keyboard(BLOCK_MARK_TRACKS);
     Column_Under_Caret++;
-    Actupated(0);
+    Update_Pattern(0);
     Select_Block_Keyboard(BLOCK_MARK_TRACKS);
     gui_action = GUI_CMD_SET_FOCUS_TRACK;
 }
@@ -3320,7 +3338,7 @@ void Goto_Top_Left(void)
         Column_Under_Caret = 0;
         Track_Under_Caret = 0;
     }
-    Actupated(0);
+    Update_Pattern(0);
     Select_Block_Keyboard(BLOCK_MARK_ROWS | BLOCK_MARK_TRACKS);
     gui_action = GUI_CMD_SET_FOCUS_TRACK;
 }
@@ -3334,9 +3352,9 @@ void Goto_Bottom_Right(void)
     else
     {
         Column_Under_Caret = 0;
-        Track_Under_Caret = Songtracks - 1;
+        Track_Under_Caret = Song_Tracks - 1;
     }
-    Actupated(0);
+    Update_Pattern(0);
     gui_action = GUI_CMD_SET_FOCUS_TRACK;
     Select_Block_Keyboard(BLOCK_MARK_ROWS | BLOCK_MARK_TRACKS);
 }
@@ -3347,7 +3365,7 @@ void Goto_Row(int row)
 {
     Select_Block_Keyboard(BLOCK_MARK_ROWS);
     Pattern_Line = row;
-    Actupated(0);
+    Update_Pattern(0);
     Select_Block_Keyboard(BLOCK_MARK_ROWS);
 }
 
@@ -3358,7 +3376,7 @@ void Goto_Song_Position(int Position)
     Song_Position = Position;
     Bound_Patt_Pos();
     Actualize_Sequencer();
-    Actupated(0);
+    Update_Pattern(0);
 }
 
 // ------------------------------------------------------
@@ -3407,29 +3425,33 @@ void Reset_Patterns_Zoom(void)
 }
 
 // ------------------------------------------------------
-// Toggle the zoom status of a track
-void Toggle_Track_Zoom(int track, int large)
+// Change the zoom status of a track
+void Change_Track_Zoom(int track, int expand)
 {
-    if(large)
+    if(expand)
     {
-        if(Get_Track_Zoom(track) == TRACK_LARGE)
+        switch(Get_Track_Zoom(track))
         {
-            Set_Track_Zoom(track, TRACK_MEDIUM);
-        }
-        else
-        {
-            Set_Track_Zoom(track, TRACK_LARGE);
+            case TRACK_SMALL:
+                Set_Track_Zoom(track, TRACK_MEDIUM);
+                break;
+
+            case TRACK_MEDIUM:
+                Set_Track_Zoom(track, TRACK_LARGE);
+                break;
         }
     }
     else
     {
-        if(Get_Track_Zoom(track) == TRACK_SMALL)
+        switch(Get_Track_Zoom(track))
         {
-            Set_Track_Zoom(track, TRACK_MEDIUM);
-        }
-        else
-        {
-            Set_Track_Zoom(track, TRACK_SMALL);
+            case TRACK_LARGE:
+                Set_Track_Zoom(track, TRACK_MEDIUM);
+                break;
+
+            case TRACK_MEDIUM:
+                Set_Track_Zoom(track, TRACK_SMALL);
+                break;
         }
     }
 }
@@ -3501,15 +3523,17 @@ void Set_Track_Zoom(int track, TRACK_TYPE type)
 // Define the number of lines to display for a pattern
 void Set_Pattern_Size()
 {
+    int sub = chars_height == 16 ? chars_height + 2 : 0;
+
     if(Large_Patterns)
     {
         Patterns_Lines_Offset = 132;
-        DISPLAYED_LINES = (Cur_Height - 256) / 8 + 1;
+        DISPLAYED_LINES = ((Cur_Height - (256 + sub)) / chars_height);
     }
     else
     {
         Patterns_Lines_Offset = 0;
-        DISPLAYED_LINES = (Cur_Height - 388) / 8 + 1;
+        DISPLAYED_LINES = ((Cur_Height - (384 + sub)) / chars_height);
     }
     VIEWLINE = (DISPLAYED_LINES / 2);
 }

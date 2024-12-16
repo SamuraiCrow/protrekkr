@@ -46,6 +46,13 @@ int Sample_Back_Channels[4];
 int Sample_Back_Size[4];
 extern short *Player_WL[MAX_TRACKS][MAX_POLYPHONY];
 extern short *Player_WR[MAX_TRACKS][MAX_POLYPHONY];
+extern unsigned int Player_LS[MAX_TRACKS][MAX_POLYPHONY];
+extern unsigned int Player_LE[MAX_TRACKS][MAX_POLYPHONY];
+extern unsigned int Player_LL[MAX_TRACKS][MAX_POLYPHONY];
+extern unsigned int Player_NS[MAX_TRACKS][MAX_POLYPHONY];
+extern char Player_LT[MAX_TRACKS][MAX_POLYPHONY];
+extern char Player_LW[MAX_TRACKS][MAX_POLYPHONY];
+extern s_access sp_Position[MAX_TRACKS][MAX_POLYPHONY];
 
 // ------------------------------------------------------
 // Rotate a selection to the left by a given amount
@@ -65,7 +72,10 @@ int Sample_Rotate_Left(int32 range_start, int32 range_end, int amount)
         for(j = 0; j < amount; j++)
         {
             sample1 = RawSamples[Current_Instrument][0][Current_Instrument_Split][range_start];
-            if(nc == 2) sample2 = RawSamples[Current_Instrument][1][Current_Instrument_Split][range_start];
+            if(nc == 2)
+            {
+                sample2 = RawSamples[Current_Instrument][1][Current_Instrument_Split][range_start];
+            }
  
             // Shift it
             for(i = range_start; i < range_end - 1; i++)
@@ -77,9 +87,11 @@ int Sample_Rotate_Left(int32 range_start, int32 range_end, int amount)
                 }
             }
             RawSamples[Current_Instrument][0][Current_Instrument_Split][i] = sample1;
-            if(nc == 2) RawSamples[Current_Instrument][1][Current_Instrument_Split][i] = sample2;
+            if(nc == 2)
+            {
+                RawSamples[Current_Instrument][1][Current_Instrument_Split][i] = sample2;
+            }
         }
-
         Status_Box("Shift Left Done.");
         return 1;
     }
@@ -104,7 +116,10 @@ int Sample_Rotate_Right(int32 range_start, int32 range_end, int amount)
         for(j = 0; j < amount; j++)
         {
             sample1 = RawSamples[Current_Instrument][0][Current_Instrument_Split][range_end - 1];
-            if(nc == 2) sample2 = RawSamples[Current_Instrument][1][Current_Instrument_Split][range_end - 1];
+            if(nc == 2)
+            {
+                sample2 = RawSamples[Current_Instrument][1][Current_Instrument_Split][range_end - 1];
+            }
  
             // Shift it
             for(i = range_end - 2; i >= range_start; i--)
@@ -116,9 +131,11 @@ int Sample_Rotate_Right(int32 range_start, int32 range_end, int amount)
                 }
             }
             RawSamples[Current_Instrument][0][Current_Instrument_Split][range_start] = sample1;
-            if(nc == 2) RawSamples[Current_Instrument][1][Current_Instrument_Split][range_start] = sample2;
+            if(nc == 2)
+            {
+                RawSamples[Current_Instrument][1][Current_Instrument_Split][range_start] = sample2;
+            }
         }
-
         Status_Box("Shift Right Done.");
         return 1;
     }
@@ -138,7 +155,6 @@ int Sample_Reverse(int32 range_start, int32 range_end)
     if(reversesize)
     {
         nc = Sample_Channels[Current_Instrument][Current_Instrument_Split];
-
         p_s = range_end - 1;
 
         // Reverse it
@@ -173,13 +189,18 @@ int Sample_Crop(int32 range_start, int32 range_end)
 
     if(cropsize)
     {
+        Lock_Audio_Thread();
         Stop_Current_Instrument();
-        AUDIO_Stop();
 
         nc = Sample_Channels[Current_Instrument][Current_Instrument_Split];
 
         NewBuffer[0] = (short *) malloc(cropsize * 2 + 8);
-        if(!NewBuffer[0]) return 0;
+        if(!NewBuffer[0])
+        {
+            Unlock_Audio_Thread();
+            Status_Box("Not enough memory.");
+            return 0;
+        }
         memset(NewBuffer[0], 0, cropsize * 2 + 8);
         if(nc == 2)
         {
@@ -187,6 +208,8 @@ int Sample_Crop(int32 range_start, int32 range_end)
             if(!NewBuffer[1])
             {
                 free(NewBuffer[0]);
+                Unlock_Audio_Thread();
+                Status_Box("Not enough memory.");
                 return 0;
             }
             memset(NewBuffer[1], 0, cropsize * 2 + 8);
@@ -198,24 +221,34 @@ int Sample_Crop(int32 range_start, int32 range_end)
         for(i = range_start; i < range_end; i++)
         {
             *(NewBuffer[0] + p_s) = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
-            if(nc == 2) *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+            if(nc == 2)
+            {
+                *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+            }
             p_s++;
         }
 
         // Set the new buffer as current sample
-        if(RawSamples[Current_Instrument][0][Current_Instrument_Split]) free(RawSamples[Current_Instrument][0][Current_Instrument_Split]);
+        if(RawSamples[Current_Instrument][0][Current_Instrument_Split])
+        {
+            free(RawSamples[Current_Instrument][0][Current_Instrument_Split]);
+        }
         RawSamples[Current_Instrument][0][Current_Instrument_Split] = NewBuffer[0];
         Player_WL[Current_Instrument][Current_Instrument_Split] = NewBuffer[0];
         if(nc == 2)
         {
-            if(RawSamples[Current_Instrument][1][Current_Instrument_Split]) free(RawSamples[Current_Instrument][1][Current_Instrument_Split]);
+            if(RawSamples[Current_Instrument][1][Current_Instrument_Split])
+            {
+                free(RawSamples[Current_Instrument][1][Current_Instrument_Split]);
+            }
             RawSamples[Current_Instrument][1][Current_Instrument_Split] = NewBuffer[1];
             Player_WR[Current_Instrument][Current_Instrument_Split] = NewBuffer[1];
         }
         Sample_Length[Current_Instrument][Current_Instrument_Split] = cropsize;
+        Recalculate_Sample_Size(Current_Instrument, Current_Instrument_Split, FALSE, range_start, range_end, FALSE, TRUE);
 
+        Unlock_Audio_Thread();
         Status_Box("Crop Done.");
-        AUDIO_Play();
         return 1;
     }
     return 0;
@@ -234,14 +267,24 @@ int Sample_Copy(int32 range_start, int32 range_end)
     if(copysize)
     {
         // Free both back buffers
-        if(Sample_Back[cur_sample_buffer][0]) free(Sample_Back[cur_sample_buffer][0]);
-        if(Sample_Back[cur_sample_buffer][1]) free(Sample_Back[cur_sample_buffer][1]);
+        if(Sample_Back[cur_sample_buffer][0])
+        {
+            free(Sample_Back[cur_sample_buffer][0]);
+        }
+        if(Sample_Back[cur_sample_buffer][1])
+        {
+            free(Sample_Back[cur_sample_buffer][1]);
+        }
         Sample_Back[cur_sample_buffer][0] = NULL;
         Sample_Back[cur_sample_buffer][1] = NULL;
 
         // Copy the data into the back buffer
         Sample_Back[cur_sample_buffer][0] = (short *) malloc(copysize * 2 + 8);
-        if(!Sample_Back[cur_sample_buffer][0]) return 0;
+        if(!Sample_Back[cur_sample_buffer][0])
+        {
+            Status_Box("Not enough memory.");
+            return 0;
+        }
         memset(Sample_Back[cur_sample_buffer][0], 0, copysize * 2 + 8);
         if(nc == 2)
         {
@@ -249,6 +292,7 @@ int Sample_Copy(int32 range_start, int32 range_end)
             if(!Sample_Back[cur_sample_buffer][1])
             {
                 free(Sample_Back[cur_sample_buffer][0]);
+                Status_Box("Not enough memory.");
                 return 0;
             }
             memset(Sample_Back[cur_sample_buffer][1], 0, copysize * 2 + 8);
@@ -262,7 +306,10 @@ int Sample_Copy(int32 range_start, int32 range_end)
         for(i = range_start; i < range_end; i++)
         {
             *dest_mono++ = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
-            if(nc == 2) *dest_stereo++ = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+            if(nc == 2)
+            {
+                *dest_stereo++ = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+            }
         }
         Status_Box("Copy Done.");
         return 1;
@@ -283,15 +330,20 @@ int Sample_Paste(int32 range_start)
 
     if(cutsize)
     {
+        Lock_Audio_Thread();
         Stop_Current_Instrument();
-        AUDIO_Stop();
 
         nc = Sample_Channels[Current_Instrument][Current_Instrument_Split];
 
         // Allocate the destination buffer(s)
         // (We need to clear the second one as the back buffer may not be stereo).
         NewBuffer[0] = (short *) malloc(newsize * 2 + 8);
-        if(!NewBuffer[0]) return 0;
+        if(!NewBuffer[0])
+        {
+            Unlock_Audio_Thread();
+            Status_Box("Not enough memory.");
+            return 0;
+        }
         memset(NewBuffer[0], 0, newsize * 2 + 8);
 
         if(nc == 2)
@@ -300,6 +352,8 @@ int Sample_Paste(int32 range_start)
             if(!NewBuffer[1])
             {
                 free(NewBuffer[0]);
+                Unlock_Audio_Thread();
+                Status_Box("Not enough memory.");
                 return 0;
             }
             memset(NewBuffer[1], 0, newsize * 2 + 8);
@@ -312,7 +366,10 @@ int Sample_Paste(int32 range_start)
             for(i = 0; i < range_start; i++)
             {
                 *(NewBuffer[0] + p_s) = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
-                if(nc == 2) *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                if(nc == 2)
+                {
+                    *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                }
                 p_s++;
             }
         }
@@ -321,7 +378,10 @@ int Sample_Paste(int32 range_start)
         for(i = 0; i < cutsize; i++)
         {
             *(NewBuffer[0] + p_s) = *(Sample_Back[cur_sample_buffer][0] + i);
-            if(Sample_Back_Size[cur_sample_buffer] == 2 && nc == 2) *(NewBuffer[1] + p_s) = *(Sample_Back[cur_sample_buffer][1] + i);
+            if(Sample_Back_Size[cur_sample_buffer] == 2 && nc == 2)
+            {
+                *(NewBuffer[1] + p_s) = *(Sample_Back[cur_sample_buffer][1] + i);
+            }
             p_s++;
         }
 
@@ -331,25 +391,35 @@ int Sample_Paste(int32 range_start)
             for(i = range_start; i < (int32) Sample_Length[Current_Instrument][Current_Instrument_Split]; i++)
             {
                 *(NewBuffer[0] + p_s) = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
-                if(nc == 2) *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                if(nc == 2)
+                {
+                    *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                }
                 p_s++;
             }
         }
 
         // Set the new buffer as current sample
-        if(RawSamples[Current_Instrument][0][Current_Instrument_Split]) free(RawSamples[Current_Instrument][0][Current_Instrument_Split]);
+        if(RawSamples[Current_Instrument][0][Current_Instrument_Split])
+        {
+            free(RawSamples[Current_Instrument][0][Current_Instrument_Split]);
+        }
         RawSamples[Current_Instrument][0][Current_Instrument_Split] = NewBuffer[0];
         Player_WL[Current_Instrument][Current_Instrument_Split] = NewBuffer[0];
         if(nc == 2)
         {
-            if(RawSamples[Current_Instrument][1][Current_Instrument_Split]) free(RawSamples[Current_Instrument][1][Current_Instrument_Split]);
+            if(RawSamples[Current_Instrument][1][Current_Instrument_Split])
+            {
+                free(RawSamples[Current_Instrument][1][Current_Instrument_Split]);
+            }
             RawSamples[Current_Instrument][1][Current_Instrument_Split] = NewBuffer[1];
             Player_WR[Current_Instrument][Current_Instrument_Split] = NewBuffer[1];
         }
         Sample_Length[Current_Instrument][Current_Instrument_Split] = newsize;
+        Recalculate_Sample_Size(Current_Instrument, Current_Instrument_Split, FALSE, range_start, range_start + cutsize, TRUE, FALSE);
 
+        Unlock_Audio_Thread();
         Status_Box("Paste Done.");
-        AUDIO_Play();
         return 1;
     }
     return 0;
@@ -368,8 +438,8 @@ int Sample_Cut(int32 range_start, int32 range_end, int do_copy)
 
     if(newsize)
     {
+        Lock_Audio_Thread();
         Stop_Current_Instrument();
-        AUDIO_Stop();
 
         nc = Sample_Channels[Current_Instrument][Current_Instrument_Split];
 
@@ -383,6 +453,8 @@ int Sample_Cut(int32 range_start, int32 range_end, int do_copy)
             if(!NewBuffer[1])
             {
                 free(NewBuffer[0]);
+                Unlock_Audio_Thread();
+                Status_Box("Not enough memory.");
                 return 0;
             }
             memset(NewBuffer[1], 0, newsize * 2 + 8);
@@ -394,6 +466,8 @@ int Sample_Cut(int32 range_start, int32 range_end, int do_copy)
             {
                 free(NewBuffer[1]);
                 free(NewBuffer[0]);
+                Unlock_Audio_Thread();
+                Status_Box("Not enough memory.");
                 return 0;
             }
         }
@@ -405,7 +479,10 @@ int Sample_Cut(int32 range_start, int32 range_end, int do_copy)
             for(i = 0; i < range_start; i++)
             {
                 *(NewBuffer[0] + p_s) = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
-                if(nc == 2) *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                if(nc == 2)
+                {
+                    *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                }
                 p_s++;
             }
         }
@@ -416,25 +493,35 @@ int Sample_Cut(int32 range_start, int32 range_end, int do_copy)
             for(i = range_end; i < (int32) Sample_Length[Current_Instrument][Current_Instrument_Split]; i++)
             {
                 *(NewBuffer[0] + p_s) = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
-                if(nc == 2) *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                if(nc == 2)
+                {
+                    *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                }
                 p_s++;
             }
         }
 
         // Set the new buffer as current sample
-        if(RawSamples[Current_Instrument][0][Current_Instrument_Split]) free(RawSamples[Current_Instrument][0][Current_Instrument_Split]);
+        if(RawSamples[Current_Instrument][0][Current_Instrument_Split])
+        {
+            free(RawSamples[Current_Instrument][0][Current_Instrument_Split]);
+        }
         RawSamples[Current_Instrument][0][Current_Instrument_Split] = NewBuffer[0];
         Player_WL[Current_Instrument][Current_Instrument_Split] = NewBuffer[0];
         if(nc == 2)
         {
-            if(RawSamples[Current_Instrument][1][Current_Instrument_Split]) free(RawSamples[Current_Instrument][1][Current_Instrument_Split]);
+            if(RawSamples[Current_Instrument][1][Current_Instrument_Split])
+            {
+                free(RawSamples[Current_Instrument][1][Current_Instrument_Split]);
+            }
             RawSamples[Current_Instrument][1][Current_Instrument_Split] = NewBuffer[1];
             Player_WR[Current_Instrument][Current_Instrument_Split] = NewBuffer[1];
         }
         Sample_Length[Current_Instrument][Current_Instrument_Split] = newsize;
+        Recalculate_Sample_Size(Current_Instrument, Current_Instrument_Split, FALSE, range_start, range_end, FALSE, FALSE);
 
+        Unlock_Audio_Thread();
         Status_Box("Cut Done.");
-        AUDIO_Play();
         return 1;
     }
     else
@@ -463,7 +550,10 @@ void Sample_DC_Adjust(int32 range_start, int32 range_end)
     for(i = range_start; i < range_end + 1; i++)
     {
         l_shift += *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
-        if(nc == 2) r_shift += *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+        if(nc == 2)
+        {
+            r_shift += *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+        }
     }
 
     l_shift /= (range_end + 1) - range_start;
@@ -474,8 +564,14 @@ void Sample_DC_Adjust(int32 range_start, int32 range_end)
         float bleak = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
         bleak -= l_shift;
 
-        if(bleak > 32767) bleak = 32767;
-        if(bleak < -32767) bleak = -32767;
+        if(bleak > 32767)
+        {
+            bleak = 32767;
+        }
+        if(bleak < -32767)
+        {
+            bleak = -32767;
+        }
         *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i) = (short) bleak;
 
         if(nc == 2)
@@ -483,8 +579,14 @@ void Sample_DC_Adjust(int32 range_start, int32 range_end)
             bleak = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
             bleak -= r_shift;
 
-            if(bleak > 32767) bleak = 32767;
-            if(bleak < -32767) bleak = -32767;
+            if(bleak > 32767)
+            {
+                bleak = 32767;
+            }
+            if(bleak < -32767)
+            {
+                bleak = -32767;
+            }
             *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i) = (short) bleak;
         }
     }
@@ -523,8 +625,14 @@ void Sample_Maximize(int32 range_start, int32 range_end)
         float bleak = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
         bleak *= l_shift;
 
-        if(bleak > 32767) bleak = 32767;
-        if(bleak < -32767) bleak = -32767;
+        if(bleak > 32767)
+        {
+            bleak = 32767;
+        }
+        if(bleak < -32767)
+        {
+            bleak = -32767;
+        }
         *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i) = (short) bleak;
 
         if(nc == 2)
@@ -532,8 +640,14 @@ void Sample_Maximize(int32 range_start, int32 range_end)
             bleak = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
             bleak *= l_shift;
 
-            if(bleak > 32767) bleak = 32767;
-            if(bleak < -32767) bleak = -32767;
+            if(bleak > 32767)
+            {
+                bleak = 32767;
+            }
+            if(bleak < -32767)
+            {
+                bleak = -32767;
+            }
             *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i) = (short) bleak;
         }
     }
@@ -575,9 +689,14 @@ void Sample_FadeIn(int32 range_start, int32 range_end)
     {
         float bleak = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
         bleak *= c_vol;
-        if(bleak > 32767) bleak = 32767;
-        if(bleak < -32767) bleak = -32767;
-
+        if(bleak > 32767)
+        {
+            bleak = 32767;
+        }
+        if(bleak < -32767)
+        {
+            bleak = -32767;
+        }
         *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i) = (short) bleak;
 
         if(nc == 2)
@@ -585,8 +704,14 @@ void Sample_FadeIn(int32 range_start, int32 range_end)
             bleak = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
             bleak *= c_vol;
 
-            if(bleak > 32767) bleak = 32767;
-            if(bleak < -32767) bleak = -32767;
+            if(bleak > 32767)
+            {
+                bleak = 32767;
+            }
+            if(bleak < -32767)
+            {
+                bleak = -32767;
+            }
             *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i) = (short) bleak;
         }
         c_vol += coef_vol;
@@ -601,11 +726,7 @@ void Sample_FadeIn(int32 range_start, int32 range_end)
 void Sample_FadeOut(int32 range_start, int32 range_end)
 {
     int32 i;
-    Status_Box("Fade Out Selection...");
-    SDL_Delay(100);
-
     char nc = Sample_Channels[Current_Instrument][Current_Instrument_Split];
-
     float c_vol = 1.0f;
     float const coef_vol = 1.0f / ((range_end + 1) - range_start);
 
@@ -613,9 +734,14 @@ void Sample_FadeOut(int32 range_start, int32 range_end)
     {
         float bleak = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
         bleak *= c_vol;
-        if(bleak > 32767) bleak = 32767;
-        if(bleak < -32767) bleak = -32767;
-
+        if(bleak > 32767)
+        {
+            bleak = 32767;
+        }
+        if(bleak < -32767)
+        {
+            bleak = -32767;
+        }
         *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i) = (short) bleak;
 
         if(nc == 2)
@@ -623,8 +749,14 @@ void Sample_FadeOut(int32 range_start, int32 range_end)
             bleak = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
             bleak *= c_vol;
 
-            if(bleak > 32767) bleak = 32767;
-            if(bleak < -32767) bleak = -32767;
+            if(bleak > 32767)
+            {
+                bleak = 32767;
+            }
+            if(bleak < -32767)
+            {
+                bleak = -32767;
+            }
             *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i) = (short) bleak;
         }
         c_vol -= coef_vol;
@@ -639,9 +771,7 @@ void Sample_FadeOut(int32 range_start, int32 range_end)
 void Sample_Half(int32 range_start, int32 range_end)
 {
     int32 i;
-
     char nc = Sample_Channels[Current_Instrument][Current_Instrument_Split];
-
     float c_vol = 0.5f;
 
     for(i = range_start; i < range_end + 1; i++)
@@ -675,15 +805,20 @@ int Sample_Duplicate(int32 range_start, int32 range_end)
 
     if(cutsize)
     {
+        Lock_Audio_Thread();
         Stop_Current_Instrument();
-        AUDIO_Stop();
 
         nc = Sample_Channels[Current_Instrument][Current_Instrument_Split];
 
         // Allocate the destination buffer(s)
         // (We need to clear the second one as the back buffer may not be stereo).
         NewBuffer[0] = (short *) malloc(newsize * 2 + 8);
-        if(!NewBuffer[0]) return 0;
+        if(!NewBuffer[0])
+        {
+            Unlock_Audio_Thread();
+            Status_Box("Not enough memory.");
+            return 0;
+        }
         memset(NewBuffer[0], 0, newsize * 2 + 8);
 
         if(nc == 2)
@@ -692,6 +827,8 @@ int Sample_Duplicate(int32 range_start, int32 range_end)
             if(!NewBuffer[1])
             {
                 free(NewBuffer[0]);
+                Unlock_Audio_Thread();
+                Status_Box("Not enough memory.");
                 return 0;
             }
             memset(NewBuffer[1], 0, newsize * 2 + 8);
@@ -704,7 +841,10 @@ int Sample_Duplicate(int32 range_start, int32 range_end)
             for(i = 0; i < range_start; i++)
             {
                 *(NewBuffer[0] + p_s) = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
-                if(nc == 2) *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                if(nc == 2)
+                {
+                    *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                }
                 p_s++;
             }
         }
@@ -713,7 +853,10 @@ int Sample_Duplicate(int32 range_start, int32 range_end)
         for(i = range_start; i < range_end; i++)
         {
             *(NewBuffer[0] + p_s) = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
-            if(nc == 2) *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+            if(nc == 2)
+            {
+                *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+            }
             p_s++;
         }
 
@@ -723,25 +866,35 @@ int Sample_Duplicate(int32 range_start, int32 range_end)
             for(i = range_start; i < (int32) Sample_Length[Current_Instrument][Current_Instrument_Split]; i++)
             {
                 *(NewBuffer[0] + p_s) = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
-                if(nc == 2) *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                if(nc == 2)
+                {
+                    *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                }
                 p_s++;
             }
         }
 
         // Set the new buffer as current sample
-        if(RawSamples[Current_Instrument][0][Current_Instrument_Split]) free(RawSamples[Current_Instrument][0][Current_Instrument_Split]);
+        if(RawSamples[Current_Instrument][0][Current_Instrument_Split])
+        {
+            free(RawSamples[Current_Instrument][0][Current_Instrument_Split]);
+        }
         RawSamples[Current_Instrument][0][Current_Instrument_Split] = NewBuffer[0];
         Player_WL[Current_Instrument][Current_Instrument_Split] = NewBuffer[0];
         if(nc == 2)
         {
-            if(RawSamples[Current_Instrument][1][Current_Instrument_Split]) free(RawSamples[Current_Instrument][1][Current_Instrument_Split]);
+            if(RawSamples[Current_Instrument][1][Current_Instrument_Split])
+            {
+                free(RawSamples[Current_Instrument][1][Current_Instrument_Split]);
+            }
             RawSamples[Current_Instrument][1][Current_Instrument_Split] = NewBuffer[1];
             Player_WR[Current_Instrument][Current_Instrument_Split] = NewBuffer[1];
         }
         Sample_Length[Current_Instrument][Current_Instrument_Split] = newsize;
+        Recalculate_Sample_Size(Current_Instrument, Current_Instrument_Split, FALSE, range_start, range_end, TRUE, FALSE);
 
+        Unlock_Audio_Thread();
         Status_Box("Insert Zeroes Done.");
-        AUDIO_Play();
         return 1;
     }
     return 0;
@@ -760,15 +913,20 @@ int Sample_InsertZero(int32 range_start, int32 range_end)
 
     if(cutsize)
     {
+        Lock_Audio_Thread();
         Stop_Current_Instrument();
-        AUDIO_Stop();
 
         nc = Sample_Channels[Current_Instrument][Current_Instrument_Split];
 
         // Allocate the destination buffer(s)
         // (We need to clear the second one as the back buffer may not be stereo).
         NewBuffer[0] = (short *) malloc(newsize * 2 + 8);
-        if(!NewBuffer[0]) return 0;
+        if(!NewBuffer[0])
+        {
+            Unlock_Audio_Thread();
+            Status_Box("Not enough memory.");
+            return 0;
+        }
         memset(NewBuffer[0], 0, newsize * 2 + 8);
 
         if(nc == 2)
@@ -777,6 +935,8 @@ int Sample_InsertZero(int32 range_start, int32 range_end)
             if(!NewBuffer[1])
             {
                 free(NewBuffer[0]);
+                Unlock_Audio_Thread();
+                Status_Box("Not enough memory.");
                 return 0;
             }
             memset(NewBuffer[1], 0, newsize * 2 + 8);
@@ -789,7 +949,10 @@ int Sample_InsertZero(int32 range_start, int32 range_end)
             for(i = 0; i < range_start; i++)
             {
                 *(NewBuffer[0] + p_s) = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
-                if(nc == 2) *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                if(nc == 2)
+                {
+                    *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                }
                 p_s++;
             }
         }
@@ -803,26 +966,336 @@ int Sample_InsertZero(int32 range_start, int32 range_end)
             for(i = range_start; i < (int32) Sample_Length[Current_Instrument][Current_Instrument_Split]; i++)
             {
                 *(NewBuffer[0] + p_s) = *(RawSamples[Current_Instrument][0][Current_Instrument_Split] + i);
-                if(nc == 2) *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                if(nc == 2)
+                {
+                    *(NewBuffer[1] + p_s) = *(RawSamples[Current_Instrument][1][Current_Instrument_Split] + i);
+                }
                 p_s++;
             }
         }
 
         // Set the new buffer as current sample
-        if(RawSamples[Current_Instrument][0][Current_Instrument_Split]) free(RawSamples[Current_Instrument][0][Current_Instrument_Split]);
+        if(RawSamples[Current_Instrument][0][Current_Instrument_Split])
+        {
+            free(RawSamples[Current_Instrument][0][Current_Instrument_Split]);
+        }
         RawSamples[Current_Instrument][0][Current_Instrument_Split] = NewBuffer[0];
         Player_WL[Current_Instrument][Current_Instrument_Split] = NewBuffer[0];
         if(nc == 2)
         {
-            if(RawSamples[Current_Instrument][1][Current_Instrument_Split]) free(RawSamples[Current_Instrument][1][Current_Instrument_Split]);
+            if(RawSamples[Current_Instrument][1][Current_Instrument_Split])
+            {
+                free(RawSamples[Current_Instrument][1][Current_Instrument_Split]);
+            }
             RawSamples[Current_Instrument][1][Current_Instrument_Split] = NewBuffer[1];
             Player_WR[Current_Instrument][Current_Instrument_Split] = NewBuffer[1];
         }
         Sample_Length[Current_Instrument][Current_Instrument_Split] = newsize;
+        Recalculate_Sample_Size(Current_Instrument, Current_Instrument_Split, FALSE, range_start, range_end, TRUE, FALSE);
 
+        Unlock_Audio_Thread();
         Status_Box("Duplicate Done.");
-        AUDIO_Play();
         return 1;
     }
     return 0;
+}
+
+void Recalculate_Sample_Size(int Instrument, int Split, int Discard_Loop, Uint32 Range_Start, Uint32 Range_End, int Add_Data, int Crop)
+{
+    int c;
+    int i;
+
+    if(Discard_Loop == FALSE)
+    {
+        if(Add_Data == TRUE)
+        {
+            // Was it added before ?
+            if(Range_Start < LoopStart[Instrument][Split] &&
+               Range_End <= LoopStart[Instrument][Split])
+            {
+                // Move right
+                LoopStart[Instrument][Split] = LoopStart[Instrument][Split] + (Range_End - Range_Start);
+                LoopEnd[Instrument][Split] = LoopEnd[Instrument][Split] + (Range_End - Range_Start);
+                Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                goto Done_Set_Range;
+            }
+
+            // Was it added inside ?
+            if(Range_Start >= LoopStart[Instrument][Split] &&
+               Range_End <= LoopEnd[Instrument][Split])
+            {
+                // Move right
+                LoopEnd[Instrument][Split] = LoopEnd[Instrument][Split] + (Range_End - Range_Start);
+                Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                goto Done_Set_Range;
+            }
+
+            // Was it added inside or on loop and bigger than loop ?
+            if(Range_Start >= LoopStart[Instrument][Split] &&
+               Range_Start < LoopEnd[Instrument][Split] &&
+               Range_End >= LoopEnd[Instrument][Split])
+            {
+                // Move right
+                LoopEnd[Instrument][Split] = LoopEnd[Instrument][Split] + (Range_End - Range_Start);
+                Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                goto Done_Set_Range;
+            }
+
+            // Was the addition bigger than the loop and added on the left ?
+            if(Range_Start < LoopStart[Instrument][Split] &&
+               Range_End >= LoopEnd[Instrument][Split])
+            {
+                // Move right
+                LoopStart[Instrument][Split] = LoopStart[Instrument][Split] + (Range_End - Range_Start);
+                LoopEnd[Instrument][Split] = LoopEnd[Instrument][Split] + (Range_End - Range_Start);
+                Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                goto Done_Set_Range;
+            }
+
+            // Was it added half inside on the left ?
+            if(Range_Start < LoopStart[Instrument][Split] &&
+               Range_End <= LoopEnd[Instrument][Split])
+            {
+                // Move right
+                LoopStart[Instrument][Split] = LoopStart[Instrument][Split] + (Range_End - Range_Start);
+                LoopEnd[Instrument][Split] = LoopEnd[Instrument][Split] + (Range_End - Range_Start);
+                Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                goto Done_Set_Range;
+            }
+
+            // Was it added half inside on the right ?
+            if(Range_Start < LoopEnd[Instrument][Split] &&
+               Range_End >= LoopEnd[Instrument][Split])
+            {
+                // Move right
+                LoopEnd[Instrument][Split] = LoopEnd[Instrument][Split] + (Range_End - Range_Start);
+                Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+            }
+        }
+        else
+        {
+            if(Crop == TRUE)
+            {
+                // Was it cropped on loop borders or outside ?
+                if(Range_Start <= LoopStart[Instrument][Split] &&
+                   Range_End >= LoopEnd[Instrument][Split])
+                {
+                    // Move left
+                    LoopStart[Instrument][Split] = LoopStart[Instrument][Split] - Range_Start;
+                    LoopEnd[Instrument][Split] = LoopEnd[Instrument][Split] - Range_Start;
+                    Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                    Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                    goto Done_Set_Range;
+                }
+
+                // Was it cropped inside ?
+                if(Range_Start > LoopStart[Instrument][Split] &&
+                   Range_End < LoopEnd[Instrument][Split])
+                {
+                    // Discard it
+                    LoopStart[Instrument][Split] = 0;
+                    LoopEnd[Instrument][Split] = 0;
+                    Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                    Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                    goto Done_Set_Range;
+                }
+
+                // Was it cropped before ?
+                if(Range_Start < LoopStart[Instrument][Split] &&
+                   Range_End <= LoopStart[Instrument][Split])
+                {
+                    // Discard it
+                    LoopStart[Instrument][Split] = 0;
+                    LoopEnd[Instrument][Split] = 0;
+                    Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                    Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                    goto Done_Set_Range;
+                }
+
+                // Was it cropped after ?
+                if(Range_Start >= LoopEnd[Instrument][Split] &&
+                   Range_End > LoopEnd[Instrument][Split])
+                {
+                    // Discard it
+                    LoopStart[Instrument][Split] = 0;
+                    LoopEnd[Instrument][Split] = 0;
+                    Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                    Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                    goto Done_Set_Range;
+                }
+
+                // Was it cropped before and inside ?
+                if(Range_Start < LoopStart[Instrument][Split] &&
+                   Range_End < LoopEnd[Instrument][Split])
+                {
+                    // Discard it
+                    LoopStart[Instrument][Split] = 0;
+                    LoopEnd[Instrument][Split] = 0;
+                    Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                    Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                    goto Done_Set_Range;
+                }
+
+                // Was it cropped inside and after ?
+                if(Range_Start > LoopStart[Instrument][Split] &&
+                   Range_End > LoopEnd[Instrument][Split])
+                {
+                    // Discard it
+                    LoopStart[Instrument][Split] = 0;
+                    LoopEnd[Instrument][Split] = 0;
+                    Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                    Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                    goto Done_Set_Range;
+                }
+
+                // Was it cropped on loop and after ?
+                if(Range_Start == LoopStart[Instrument][Split] &&
+                   Range_End > LoopEnd[Instrument][Split])
+                {
+                    // Move left
+                    LoopStart[Instrument][Split] = LoopStart[Instrument][Split] - Range_Start;
+                    LoopEnd[Instrument][Split] = LoopEnd[Instrument][Split] - Range_Start;
+                    Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                    Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                    goto Done_Set_Range;
+                }
+
+                // Was it cropped before and on loop ?
+                if(Range_Start < LoopStart[Instrument][Split] &&
+                   Range_End == LoopEnd[Instrument][Split])
+                {
+                    // Move left
+                    LoopStart[Instrument][Split] = LoopStart[Instrument][Split] - Range_Start;
+                    LoopEnd[Instrument][Split] = LoopEnd[Instrument][Split] - Range_Start;
+                    Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                    Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                    goto Done_Set_Range;
+                }
+            }
+            else
+            {
+                // Was it cutted before ?
+                if(Range_Start < LoopStart[Instrument][Split] &&
+                   Range_End <= LoopStart[Instrument][Split])
+                {
+                    // Move left
+                    LoopStart[Instrument][Split] = LoopStart[Instrument][Split] - (Range_End - Range_Start);
+                    LoopEnd[Instrument][Split] = LoopEnd[Instrument][Split] - (Range_End - Range_Start);
+                    Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                    Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                    goto Done_Set_Range;
+                }
+
+                // Was it cutted inside ?
+                // (result may be zero but it's handled below)
+                if(Range_Start >= LoopStart[Instrument][Split] &&
+                   Range_End <= LoopEnd[Instrument][Split])
+                {
+                    // Move right
+                    LoopEnd[Instrument][Split] = LoopEnd[Instrument][Split] - (Range_End - Range_Start);
+                    Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                    goto Done_Set_Range;
+                }
+
+                // Was it cutted outside ?
+                if(Range_Start < LoopStart[Instrument][Split] &&
+                   Range_End > LoopEnd[Instrument][Split])
+                {
+                    // Discard it
+                    LoopStart[Instrument][Split] = 0;
+                    LoopEnd[Instrument][Split] = 0;
+                    Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                    Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                    goto Done_Set_Range;
+                }
+
+                // Was it cutted half inside on the left ?
+                if(Range_Start < LoopStart[Instrument][Split] &&
+                   Range_End <= LoopEnd[Instrument][Split])
+                {
+                    // Move to range start
+                    LoopStart[Instrument][Split] = Range_Start;
+                    Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+                    goto Done_Set_Range;
+                }
+
+                // Was it cutted half inside on the right ?
+                if(Range_Start <= LoopEnd[Instrument][Split] &&
+                   Range_End > LoopEnd[Instrument][Split])
+                {
+                    // Move to range end
+                    LoopEnd[Instrument][Split] = Range_End;
+                    Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+                }
+            }
+        }
+    }
+Done_Set_Range:
+
+    if(Player_LE[Instrument][Split] != LoopEnd[Instrument][Split])
+    {
+        Player_LE[Instrument][Split] = LoopEnd[Instrument][Split];
+    }
+    if(Player_LS[Instrument][Split] != LoopStart[Instrument][Split])
+    {
+        Player_LS[Instrument][Split] = LoopStart[Instrument][Split];
+    }
+    if(Player_LS[Instrument][Split] > Sample_Length[Instrument][Split])
+    {
+        Player_LS[Instrument][Split] = Sample_Length[Instrument][Split];
+    }
+    if(Player_LE[Instrument][Split] > Sample_Length[Instrument][Split])
+    {
+        Player_LE[Instrument][Split] = Sample_Length[Instrument][Split];
+    }
+    if(Player_LS[Instrument][Split] > Sample_Length[Instrument][Split])
+    {
+        Player_LS[Instrument][Split] = Sample_Length[Instrument][Split];
+    }
+
+    // Remove the loop info if it's no longer relevant
+    if(Player_LS[Instrument][Split] >= Player_LE[Instrument][Split])
+    {
+        Player_LS[Instrument][Split] = 0;
+        Player_LE[Instrument][Split] = 0;
+        Player_LT[Instrument][Split] = SMP_LOOP_NONE;
+        LoopType[Instrument][Split] = SMP_LOOP_NONE;
+        Player_LW[Instrument][Split] = SMP_LOOPING_FORWARD;
+    }
+
+    if(Player_LE[Instrument][Split] != LoopEnd[Instrument][Split])
+    {
+        LoopEnd[Instrument][Split] = Player_LE[Instrument][Split];;
+    }
+    if(Player_LS[Instrument][Split] != LoopStart[Instrument][Split])
+    {
+        LoopStart[Instrument][Split] = Player_LS[Instrument][Split];
+    }
+
+    Player_LL[Instrument][Split] = Player_LE[Instrument][Split] - Player_LS[Instrument][Split];
+    Player_NS[Instrument][Split] = Sample_Length[Instrument][Split];
+    sp_Position[Instrument][Split].absolu = 0;
+
+    // Now look if this instrument is being played somewhere
+    for(c = 0; c < Song_Tracks; c++)
+    {
+        for(i = 0; i < Channels_Polyphony[c]; i++)
+        {
+            if(sp_channelsample[c][i] == Instrument)
+            {
+                // Set the waveform for the played split
+                if(sp_split[c][i] == Split)
+                {
+                    Player_WL[c][i] = RawSamples[Instrument][0][Split];
+                    if(Sample_Channels[Instrument][Split] == 2)
+                    {
+                        Player_WR[c][i] = RawSamples[Instrument][1][Split];
+                    }
+                }
+            }
+        }
+    }           
 }
